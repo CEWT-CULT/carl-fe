@@ -1,0 +1,86 @@
+@import 'tailwindcss';
+
+
+@theme {
+  --color-neutron-green: #4caf50;
+  /* C.A.R.L palette — sampled from brand swatches */
+  --color-carl-navy: #101747;
+  --color-carl-midnight: #030035;
+  --color-carl-purple: #321051;
+  --color-carl-plum: #1b0038;
+  --color-carl-slate: #1f1c3b;
+  --color-carl-accent: #7c6bcf;
+  --color-carl-text: #d4d8f0;
+  --color-carl-muted: #9aa3c7;
+  --color-carl-track: #282732;
+  --color-carl-track-lane: #32303d;
+  --color-carl-track-lane-alt: #222028;
+  --color-carl-track-border: #1f1c3b;
+  --color-carl-track-divider: #3a3844;
+  --color-carl-track-gutter: #1f1d26;
+}
+
+
+@layer base {
+  button {
+    @apply cursor-pointer;
+  }
+}
+
+@layer components {
+  /* Shared #0c0c0c / #1f1c3b checker tile (16px squares, 32px repeat) */
+  .checkered-flag {
+    background-color: #0c0c0c;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Crect width='16' height='16' fill='%230c0c0c'/%3E%3Crect x='16' y='16' width='16' height='16' fill='%230c0c0c'/%3E%3Crect x='16' width='16' height='16' fill='%231f1c3b'/%3E%3Crect y='16' width='16' height='16' fill='%231f1c3b'/%3E%3C/svg%3E");
+    background-size: 32px 32px;
+    background-repeat: repeat;
+  }
+
+  /* Track start/finish rails — exactly 2 checker rows */
+  .track-rail-checkered {
+    height: 32px;
+  }
+
+  .navbar-checkered {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background-color: #0c0c0c;
+  }
+
+  .navbar-checkered::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-color: #0c0c0c;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Crect width='16' height='16' fill='%230c0c0c'/%3E%3Crect x='16' y='16' width='16' height='16' fill='%230c0c0c'/%3E%3Crect x='16' width='16' height='16' fill='%231f1c3b'/%3E%3Crect y='16' width='16' height='16' fill='%231f1c3b'/%3E%3C/svg%3E");
+    background-size: 32px 32px;
+    background-repeat: repeat;
+  }
+
+  /* Solid #0c0c0c left → checker shows through on the right */
+  .navbar-checkered::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(
+      to right,
+      #0c0c0c 0%,
+      #0c0c0c 22%,
+      rgba(12, 12, 12, 0.96) 34%,
+      rgba(12, 12, 12, 0.72) 48%,
+      rgba(12, 12, 12, 0.38) 62%,
+      rgba(12, 12, 12, 0.1) 78%,
+      transparent 100%
+    );
+    pointer-events: none;
+  }
+
+  .navbar-checkered > * {
+    position: relative;
+    z-index: 2;
+  }
+}

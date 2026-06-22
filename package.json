@@ -1,0 +1,34 @@
+{
+  "name": "carl",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@interchain-kit/keplr-extension": "^0.10.2",
+    "@interchain-kit/keplr-mobile": "^0.10.2",
+    "@interchain-kit/react": "^0.10.2",
+    "@tanstack/react-query": "^5.72.1",
+    "chain-registry": "^2.0.217",
+    "framer-motion": "^12.6.3",
+    "interchainjs": "^1.21.0",
+    "next": "^15.5.19",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-hot-toast": "^2.5.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.3",
+    "postcss": "^8.5.10",
+    "tailwindcss": "^4.1.3"
+  },
+  "overrides": {
+    "protobufjs": "^7.5.8",
+    "uuid": "^11.1.1",
+    "postcss": "^8.5.10"
+  }
+}

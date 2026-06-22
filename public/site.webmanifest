@@ -1,0 +1,10 @@
+{
+  "name": "Cosmos Animal Racing League",
+  "short_name": "CARL",
+  "icons": [
+    { "src": "/icons/logo.webp", "sizes": "512x512", "type": "image/webp" }
+  ],
+  "theme_color": "#0c0c0c",
+  "background_color": "#0c0c0c",
+  "display": "standalone"
+}
