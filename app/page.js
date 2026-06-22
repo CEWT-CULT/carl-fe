@@ -7,6 +7,7 @@ import { useRaceGlobal, useCurrentPhase, useRaceEntry } from "@/hooks";
 import { isEntryOpen } from "@/utils/phases";
 import { ACTION } from "@/utils/raceTheme";
 import PhaseStrip from "@/components/PhaseStrip";
+import RacerRevealBanner from "@/components/RacerRevealBanner";
 import RaceTrack from "@/components/RaceTrack";
 import RaceEventFeed from "@/components/RaceEventFeed";
 import VaultBar from "@/components/VaultBar";
@@ -44,6 +45,8 @@ export default function Home() {
         )}
 
         <PhaseStrip />
+
+        <RacerRevealBanner />
 
         <section aria-label="Race track" className="mb-4 h-[60vh] min-h-[420px]">
           <RaceTrack />

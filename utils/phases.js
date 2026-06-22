@@ -27,7 +27,7 @@ export const PREVIEW_CRANK_INTERVAL_SECS = 60;
 export const PREVIEW_PROGRESS_CAP = 85;
 /** Test: live track window after reveals (seconds). */
 export const TEST_PREVIEW_LIVE_SECS = 5 * 60;
-/** Production: 3 races/day in 8h blocks — 6h prep, 1h reveal grace, 1h live. */
+/** Production: 3 races/day in 8h blocks — 3h prep, 3h reveal, 2h live. */
 export const PROD_BLOCK_SECS = 8 * 3600;
 export const PROD_LIVE_SECS = 3600;
 export const PROD_PREP_SECS = 3 * 3600;
@@ -121,11 +121,9 @@ export function bettingCloseAt(race) {
   return cr ?? p3 ?? p1;
 }
 
+/** When NFT entry closes — mirrors contract `is_entry_open` (until `phase_2_close`). */
 export function entryCloseAt(race) {
-  const p1 = tsToSeconds(race?.phase_1_close);
-  const p2 = tsToSeconds(race?.phase_2_close);
-  if (p1 == null || p2 == null) return p2 ?? p1;
-  return Math.max(p1, p2);
+  return tsToSeconds(race?.phase_2_close) ?? tsToSeconds(race?.phase_1_close);
 }
 
 /** Side bets until the race goes live — mirrors contract `is_betting_open`. */
@@ -250,6 +248,77 @@ export function isRevealWindowClosed(race, nowSec = Date.now() / 1000) {
   return nowSec >= end;
 }
 
+/** When this runner may call GET SET (max of global reveal open and personal 5m delay). */
+export function runnerSetOpensAtSec(race, config, entry) {
+  const globalOpen = revealWindowStart(race, config);
+  const committedAt = tsToSeconds(entry?.committed_at);
+  const personalOpen =
+    committedAt != null ? committedAt + REVEAL_DELAY_SECS : null;
+  if (globalOpen == null && personalOpen == null) return null;
+  if (globalOpen == null) return personalOpen;
+  if (personalOpen == null) return globalOpen;
+  return Math.max(globalOpen, personalOpen);
+}
+
+/** Human-readable UTC timestamp for “come back at …”. */
+export function formatUtcDateTime(unixSec) {
+  if (unixSec == null || !Number.isFinite(unixSec)) return "—";
+  return new Date(unixSec * 1000).toLocaleString("en-US", {
+    timeZone: "UTC",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZoneName: "short",
+  });
+}
+
+/** Long countdown for multi-hour waits — e.g. "3h 28m 05s". */
+export function formatCountdownLong(seconds) {
+  if (seconds == null || seconds < 0) return "--:--:--";
+  const s = Math.floor(seconds);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) {
+    return `${h}h ${m.toString().padStart(2, "0")}m ${sec.toString().padStart(2, "0")}s`;
+  }
+  return `${m}:${sec.toString().padStart(2, "0")}`;
+}
+
+/**
+ * Runner-facing GET SET schedule for the connected wallet's race entry.
+ * @returns {{ status: 'hidden'|'not_entered'|'done'|'waiting'|'open'|'missed'|'unknown', opensAt?, closesAt?, secondsUntilOpen?, secondsUntilClose? }}
+ */
+export function getRunnerSetSchedule(race, config, entry, nowSec = Date.now() / 1000) {
+  if (!race || race.is_settled) return { status: "hidden" };
+  if (!entry) return { status: "not_entered" };
+  if (entry.revealed_action) return { status: "done" };
+
+  const opensAt = runnerSetOpensAtSec(race, config, entry);
+  const closesAt = revealWindowEnd(race);
+  if (opensAt == null || closesAt == null) return { status: "unknown" };
+
+  if (nowSec >= closesAt) {
+    return { status: "missed", opensAt, closesAt };
+  }
+  if (nowSec >= opensAt) {
+    return {
+      status: "open",
+      opensAt,
+      closesAt,
+      secondsUntilClose: Math.max(0, closesAt - nowSec),
+    };
+  }
+  return {
+    status: "waiting",
+    opensAt,
+    closesAt,
+    secondsUntilOpen: Math.max(0, opensAt - nowSec),
+  };
+}
+
 export function nextPhaseDeadline(race, config, nowSec = Date.now() / 1000) {
   if (!race || race.is_settled) return null;
   const p1 = tsToSeconds(race.phase_1_close);
@@ -280,7 +349,8 @@ export function nextPhaseDeadline(race, config, nowSec = Date.now() / 1000) {
   }
 
   if (crowdPhasesEnabled(race) && cc != null && cr != null) {
-    if (nowSec < entryClose) return { label: "Entry closes", at: entryClose, nextPhase: "betting" };
+    const prepLabel = isCombinedPrepSchedule(race) ? "Prep ends" : "Entry closes";
+    if (nowSec < entryClose) return { label: prepLabel, at: entryClose, nextPhase: "betting" };
     if (nowSec < cc) return { label: "Crowd commit ends", at: cc, nextPhase: "crowd_reveal" };
     if (nowSec < closeAt) return { label: "Betting closes", at: closeAt, nextPhase: "settlement" };
     return { label: `${ACTION.revealResults} open`, at: p3, nextPhase: "settled" };
@@ -299,13 +369,16 @@ export function nextPhaseDeadline(race, config, nowSec = Date.now() / 1000) {
 
 export function formatCountdown(seconds) {
   if (seconds <= 0) return "now";
+  if (seconds >= 3600) return formatCountdownLong(seconds);
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
+/** Clock-style countdown — uses h/m/s for waits over an hour (not raw minutes like 203:57). */
 export function formatCountdownClock(seconds) {
   if (seconds == null || seconds < 0) return "--:--";
+  if (seconds >= 3600) return formatCountdownLong(seconds);
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
