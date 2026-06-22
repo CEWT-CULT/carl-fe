@@ -30,8 +30,8 @@ export const TEST_PREVIEW_LIVE_SECS = 5 * 60;
 /** Production: 3 races/day in 8h blocks — 6h prep, 1h reveal grace, 1h live. */
 export const PROD_BLOCK_SECS = 8 * 3600;
 export const PROD_LIVE_SECS = 3600;
-export const PROD_PREP_SECS = 6 * 3600;
-export const PROD_REVEAL_GRACE_SECS = 3600;
+export const PROD_PREP_SECS = 3 * 3600;
+export const PROD_REVEAL_GRACE_SECS = 3 * 3600;
 /** Per-user reveal delay after commit (seconds). */
 export const REVEAL_DELAY_SECS = 5 * 60;
 /** @deprecated legacy staggered prod constants */
