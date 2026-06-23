@@ -64,7 +64,7 @@ export function getMarqueeCopy({ raceId = 0, phaseKey = "entry", settlementReady
     case "crowd_reveal":
       return {
         headline: `${ACTION.cheer} — RACE #${n}`,
-        subline: `CROWD SALTS & RUNNER ${ACTION.set} ON CHAIN`,
+        subline: "ENTRIES FOR THIS RACE HAVE ENDED - THE RACE STARTS SOON",
       };
     case "reveal":
       return {

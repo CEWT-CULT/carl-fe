@@ -18,6 +18,7 @@ import {
 import { ACTION, getMarqueeCopy } from "@/utils/raceTheme";
 import { formatAtom } from "@/utils/race";
 import { computeFirstPrize, ENTRY_POOL_SPLIT } from "@/utils/settlementPayouts";
+import UpcomingRaceEntries from "@/components/UpcomingRaceEntries";
 
 export default function PhaseStrip() {
   const { value: race } = useRaceGlobal();
@@ -97,6 +98,9 @@ export default function PhaseStrip() {
           <p className="mt-1.5 text-xs font-semibold uppercase tracking-widest text-carl-muted sm:text-sm">
             {subline}
           </p>
+          {displayKey === "crowd_reveal" && enrolling && !race.is_settled && (
+            <UpcomingRaceEntries raceId={enrolling.current_race_id} />
+          )}
           {enrolling && !race.is_settled && (
             <p className="mt-2 text-xs font-semibold text-amber-200/90">
               {isEntryOpenForRace(enrolling, nowSec)
