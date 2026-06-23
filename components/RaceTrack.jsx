@@ -12,7 +12,7 @@ import {
 } from "@/hooks";
 import { useNftImages } from "@/hooks/useNftImages";
 import { useNowSec } from "@/hooks/useNowSec";
-import { shortRunnerName } from "@/utils/race";
+import { shortRunnerName, formatAtom } from "@/utils/race";
 import { speciesKey } from "@/utils/species";
 import RunnerAvatar from "@/components/RunnerAvatar";
 import LaneBetButton from "@/components/LaneBetButton";
@@ -64,13 +64,15 @@ function RaceProgressBar({ pct }) {
   );
 }
 
-function RunnerGutter({ runner, racerBetCount = 0, forfeited = false }) {
+function RunnerGutter({ runner, racerBet, forfeited = false }) {
   const species = speciesKey(runner);
   const tail = runner.player ? `…${String(runner.player).slice(-6)}` : "—";
+  const racerBetCount = racerBet?.count ?? 0;
+  const racerBetAmount = racerBet?.amount ?? 0;
 
   return (
     <div
-      className={`flex items-center gap-2 px-2 border-r border-carl-track-divider/70 bg-carl-track-gutter/80 shrink-0 h-full ${
+      className={`flex items-center gap-2 px-2 border-r border-carl-track-divider/70 bg-carl-track-gutter/80 shrink-0 h-full overflow-visible ${
         forfeited ? "opacity-75" : ""
       }`}
       style={{ width: GUTTER_WIDTH }}
@@ -87,10 +89,23 @@ function RunnerGutter({ runner, racerBetCount = 0, forfeited = false }) {
           )}
           {racerBetCount > 0 && (
             <span
-              className="shrink-0 text-[10px] font-bold font-mono px-1.5 py-0.5 rounded bg-yellow-600/90 text-white border border-yellow-400/50"
-              title={`${racerBetCount} individual racer bet${racerBetCount === 1 ? "" : "s"}`}
+              className="group/bet relative shrink-0 cursor-help"
+              aria-label={`${racerBetCount} individual racer bet${racerBetCount === 1 ? "" : "s"}, ${formatAtom(racerBetAmount)} ATOM`}
             >
-              {racerBetCount}
+              <span className="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded bg-yellow-600/90 text-white border border-yellow-400/50">
+                {racerBetCount}
+              </span>
+              <span
+                role="tooltip"
+                className="pointer-events-none absolute left-full top-1/2 z-30 ml-1.5 hidden w-max max-w-[14rem] -translate-y-1/2 rounded-md border border-yellow-500/50 bg-gray-950/95 px-2 py-1.5 text-left text-[10px] leading-snug text-white shadow-lg group-hover/bet:block"
+              >
+                <span className="block font-semibold text-yellow-100">
+                  {racerBetCount} individual racer bet{racerBetCount === 1 ? "" : "s"}
+                </span>
+                <span className="block mt-0.5 font-mono text-carl-muted">
+                  {formatAtom(racerBetAmount)} ATOM in this pick pool
+                </span>
+              </span>
             </span>
           )}
         </div>
@@ -104,18 +119,17 @@ function RunnerGutter({ runner, racerBetCount = 0, forfeited = false }) {
 }
 
 function DragRaceTrack({ laneRunners, imageMap, racerBetsByPick, className = "" }) {
-  const laneCount = laneRunners.length;
-  const lanesMinHeight = Math.max(laneCount, 1) * LANE_HEIGHT_PX;
+  const lanesHeight = laneRunners.length * LANE_HEIGHT_PX;
 
   return (
     <div
-      className={`relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border-2 border-carl-track-border shadow-2xl shadow-black/40 ${className}`}
+      className={`relative flex shrink-0 flex-col overflow-hidden rounded-xl border-2 border-carl-track-border shadow-2xl shadow-black/40 ${className}`}
     >
       <TrackRail position="top" />
-      <div className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-carl-track">
+      <div className="relative bg-carl-track">
         <div
-          className="relative flex w-full min-h-full flex-col divide-y divide-carl-track-divider/50"
-          style={{ minHeight: `${lanesMinHeight}px` }}
+          className="relative flex w-full flex-col divide-y divide-carl-track-divider/50"
+          style={{ height: `${lanesHeight}px` }}
         >
           {laneRunners.map((runner, laneIdx) => {
             const pct = runner.leftPct ?? START_PCT;
@@ -123,15 +137,15 @@ function DragRaceTrack({ laneRunners, imageMap, racerBetsByPick, className = "" 
               <div
                 key={runner.laneKey}
                 className="flex w-full shrink-0"
-                style={{ minHeight: `${LANE_HEIGHT_PX}px` }}
+                style={{ height: `${LANE_HEIGHT_PX}px` }}
               >
                 <RunnerGutter
                   runner={runner}
-                  racerBetCount={racerBetsByPick?.get(runner.player)?.count ?? 0}
+                  racerBet={racerBetsByPick?.get(runner.player)}
                   forfeited={runner.forfeited}
                 />
                 <div
-                  className={`relative min-h-[inherit] flex-1 ${
+                  className={`relative h-full flex-1 ${
                     laneIdx % 2 === 0 ? "bg-carl-track-lane" : "bg-carl-track-lane-alt"
                   } ${runner.forfeited ? "opacity-60" : ""}`}
                 >
@@ -278,7 +292,7 @@ export default function RaceTrack() {
   const prepPhase = !raceLive && !race?.is_settled;
 
   return (
-    <div className="flex h-full max-h-full min-h-[420px] flex-col bg-gradient-to-b from-gray-900 to-gray-950 rounded-2xl p-3 sm:p-4 border border-gray-700/80 shadow-xl w-full">
+    <div className="flex w-full min-h-[420px] flex-col bg-gradient-to-b from-gray-900 to-gray-950 rounded-2xl p-3 sm:p-4 border border-gray-700/80 shadow-xl">
       <div className="mb-2 shrink-0 flex items-end justify-between gap-3">
         <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-[0.14em] text-carl-text">
           ARENA
@@ -293,8 +307,8 @@ export default function RaceTrack() {
         </div>
       )}
 
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
+      <div className="flex flex-col">
+        <div className="flex flex-col rounded-xl">
           {showTrack ? (
             <DragRaceTrack
               laneRunners={laneRunners}
@@ -302,7 +316,7 @@ export default function RaceTrack() {
               racerBetsByPick={racerBetsByPick}
             />
           ) : (
-            <div className="relative flex-1 min-h-0 flex flex-col">
+            <div className="relative flex min-h-[280px] flex-col">
               <TrackRail position="top" />
               <div className="relative bg-carl-track flex-1 min-h-0 flex items-center justify-center p-4 overflow-y-auto">
                 <div className="bg-carl-track-gutter/90 backdrop-blur-sm rounded-xl px-4 sm:px-8 py-5 sm:py-6 text-center z-10 w-full max-w-3xl border border-carl-track-divider/50">
