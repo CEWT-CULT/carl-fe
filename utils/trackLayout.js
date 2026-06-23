@@ -3,7 +3,8 @@ import { getCumulativeDistance } from "./race";
 export const TICK_COUNT = 5;
 export const START_PCT = 5;
 export const FINISH_PCT = 92;
-export const MAX_LANES = 12;
+/** Match contract `MAX_RUNNERS` — show every entrant on the track. */
+export const MAX_LANES = 75;
 
 /** Stable lane order — never reorder by rank. */
 export function sortRunnersForLanes(runners) {

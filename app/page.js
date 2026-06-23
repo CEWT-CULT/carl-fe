@@ -48,7 +48,10 @@ export default function Home() {
 
         <RacerRevealBanner />
 
-        <section aria-label="Race track" className="mb-4 h-[60vh] min-h-[420px]">
+        <section
+          aria-label="Race track"
+          className="mb-4 flex min-h-[420px] max-h-[85vh] flex-col overflow-hidden"
+        >
           <RaceTrack />
         </section>
 

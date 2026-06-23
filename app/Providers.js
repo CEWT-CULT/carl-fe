@@ -25,6 +25,7 @@ const queryClient = new QueryClient({
 
 export default function Providers({ children }) {
   const signerOptions = {
+    // Software wallets use protobuf signing; Ledger via Keplr is switched to amino in useChainClient.
     preferredSignType: () => "direct",
     signing: (chainName) => {
       if (!chainName) return;

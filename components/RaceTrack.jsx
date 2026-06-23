@@ -26,22 +26,22 @@ import {
   positionsFromCumulative,
   runnersAtStartLine,
   resetPositionMemory,
-  sortRunnersForLanes,
   applyForfeitToLanes,
 } from "@/utils/trackLayout";
 import { summarizeSideBetDesk } from "@/utils/sideBets";
 
 /** Gutter width — NFT + wallet readable at a glance. */
 const GUTTER_WIDTH = "9.5rem";
-/** Per-lane floor when many runners force scrolling. */
-const MIN_LANE_HEIGHT = 56;
+/** Per-lane height — track grows by adding lanes; scroll after max viewport. */
+const LANE_HEIGHT_PX = 72;
 
 function TrackRail({ position }) {
   return (
     <div
-      className={`checkered-flag track-rail-checkered absolute left-0 right-0 ${
-        position === "top" ? "top-0" : "bottom-0"
-      } z-20`}
+      className={`checkered-flag track-rail-checkered shrink-0 w-full ${
+        position === "top" ? "border-b border-carl-track-divider/40" : "border-t border-carl-track-divider/40"
+      }`}
+      aria-hidden
     />
   );
 }
@@ -104,70 +104,67 @@ function RunnerGutter({ runner, racerBetCount = 0, forfeited = false }) {
 }
 
 function DragRaceTrack({ laneRunners, imageMap, racerBetsByPick, className = "" }) {
-  const laneCount = Math.max(laneRunners.length, 1);
+  const laneCount = laneRunners.length;
+  const lanesMinHeight = Math.max(laneCount, 1) * LANE_HEIGHT_PX;
 
   return (
     <div
-      className={`relative h-full min-h-0 rounded-xl overflow-hidden border-2 border-carl-track-border shadow-2xl shadow-black/40 flex flex-col ${className}`}
+      className={`relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border-2 border-carl-track-border shadow-2xl shadow-black/40 ${className}`}
     >
       <TrackRail position="top" />
-      <div className="relative bg-carl-track flex-1 min-h-0 overflow-y-auto">
+      <div className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-carl-track">
         <div
-          className="relative w-full"
-          style={{ height: `max(100%, ${laneCount * MIN_LANE_HEIGHT}px)` }}
+          className="relative flex w-full min-h-full flex-col divide-y divide-carl-track-divider/50"
+          style={{ minHeight: `${lanesMinHeight}px` }}
         >
-        {laneRunners.map((runner, laneIdx) => {
-          const laneHeightPct = 100 / laneCount;
-          const laneTopPct = laneIdx * laneHeightPct;
-          const pct = runner.leftPct ?? START_PCT;
-          return (
-            <div
-              key={runner.laneKey}
-              className="absolute left-0 right-0 flex"
-              style={{ top: `${laneTopPct}%`, height: `${laneHeightPct}%` }}
-            >
-              <RunnerGutter
-                runner={runner}
-                racerBetCount={racerBetsByPick?.get(runner.player)?.count ?? 0}
-                forfeited={runner.forfeited}
-              />
+          {laneRunners.map((runner, laneIdx) => {
+            const pct = runner.leftPct ?? START_PCT;
+            return (
               <div
-                className={`relative flex-1 border-b border-carl-track-divider/50 ${
-                  laneIdx % 2 === 0 ? "bg-carl-track-lane" : "bg-carl-track-lane-alt"
-                } ${runner.forfeited ? "opacity-60" : ""}`}
+                key={runner.laneKey}
+                className="flex w-full shrink-0"
+                style={{ minHeight: `${LANE_HEIGHT_PX}px` }}
               >
+                <RunnerGutter
+                  runner={runner}
+                  racerBetCount={racerBetsByPick?.get(runner.player)?.count ?? 0}
+                  forfeited={runner.forfeited}
+                />
                 <div
-                  className={`absolute top-1/2 z-10 flex items-center gap-1 transition-[left] duration-1000 ease-out ${
-                    runner.forfeited ? "grayscale" : ""
-                  }`}
-                  style={{
-                    left: `${pct}%`,
-                    transform: "translate(-50%, -50%)",
-                  }}
+                  className={`relative min-h-[inherit] flex-1 ${
+                    laneIdx % 2 === 0 ? "bg-carl-track-lane" : "bg-carl-track-lane-alt"
+                  } ${runner.forfeited ? "opacity-60" : ""}`}
                 >
-                  <LaneBetButton runner={runner} />
-                  <RunnerAvatar
-                    nftContract={runner.nft_contract}
-                    nftId={runner.nft_id}
-                    species={runner.species}
-                    imageMap={imageMap}
-                    size="lg"
-                  />
+                  <div
+                    className={`absolute top-1/2 z-[1] flex items-center gap-1 transition-[left] duration-1000 ease-out ${
+                      runner.forfeited ? "grayscale" : ""
+                    }`}
+                    style={{
+                      left: `${pct}%`,
+                      transform: "translate(-50%, -50%)",
+                    }}
+                  >
+                    <LaneBetButton runner={runner} />
+                    <RunnerAvatar
+                      nftContract={runner.nft_contract}
+                      nftId={runner.nft_id}
+                      species={runner.species}
+                      imageMap={imageMap}
+                      size="lg"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
 
-        <div
-          className="absolute top-3 bottom-3 w-1.5 bg-white/90 z-10 shadow"
-          style={{ right: 0 }}
-        />
-        <div
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-bold text-white/90 rotate-90 origin-center tracking-widest z-10 pointer-events-none"
-        >
-          FINISH
-        </div>
+          <div
+            className="pointer-events-none absolute inset-y-0 right-0 w-1.5 bg-white/90 shadow"
+            aria-hidden
+          />
+          <div className="pointer-events-none absolute right-2 top-1/2 z-[1] -translate-y-1/2 rotate-90 origin-center text-[11px] font-bold tracking-widest text-white/90">
+            FINISH
+          </div>
         </div>
       </div>
       <TrackRail position="bottom" />
@@ -281,7 +278,7 @@ export default function RaceTrack() {
   const prepPhase = !raceLive && !race?.is_settled;
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-b from-gray-900 to-gray-950 rounded-2xl p-3 sm:p-4 border border-gray-700/80 shadow-xl w-full min-h-0">
+    <div className="flex h-full max-h-full min-h-[420px] flex-col bg-gradient-to-b from-gray-900 to-gray-950 rounded-2xl p-3 sm:p-4 border border-gray-700/80 shadow-xl w-full">
       <div className="mb-2 shrink-0 flex items-end justify-between gap-3">
         <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-[0.14em] text-carl-text">
           ARENA
@@ -296,11 +293,10 @@ export default function RaceTrack() {
         </div>
       )}
 
-      <div className="flex-1 min-h-0 flex flex-col">
-        <div className="flex-1 min-h-0 flex flex-col rounded-xl overflow-hidden border-2 border-carl-track-border shadow-inner">
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
           {showTrack ? (
             <DragRaceTrack
-              className="flex-1 min-h-0 rounded-none border-0 shadow-none"
               laneRunners={laneRunners}
               imageMap={imageMap}
               racerBetsByPick={racerBetsByPick}
@@ -336,11 +332,6 @@ export default function RaceTrack() {
         </p>
       )}
 
-      {showTrack && laneRunners.length < (roster?.length ?? 0) && (
-        <p className="text-center text-xs text-gray-500 mt-1 shrink-0">
-          Showing {laneRunners.length} of {sortRunnersForLanes(roster ?? []).length} lanes
-        </p>
-      )}
       </div>
     </div>
   );
