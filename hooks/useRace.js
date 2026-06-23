@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { useChain } from "@/hooks/useChainClient";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { CHAIN_NAME, CONTRACT } from "@/config";
+import { parseEnrollingRace } from "@/utils/phases";
 
 export function useRaceGlobal() {
   const { getCosmWasmClient } = useChain(CHAIN_NAME);
