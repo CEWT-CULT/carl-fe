@@ -18,6 +18,21 @@ export function useRaceGlobal() {
   return { value: query.data, query };
 }
 
+/** Pipeline race open for entry/bets while the running race is in reveal/live. */
+export function useEnrollingRace() {
+  const { getCosmWasmClient } = useChain(CHAIN_NAME);
+  const query = useQuery({
+    queryKey: ["enrolling_race"],
+    queryFn: async () => {
+      const readClient = await getCosmWasmClient();
+      return readClient.queryContractSmart(CONTRACT, { enrolling_race: {} });
+    },
+    enabled: !!CONTRACT,
+    refetchInterval: 1000 * 3,
+  });
+  return { value: query.data ?? null, query };
+}
+
 export function useCurrentPhase() {
   const { getCosmWasmClient } = useChain(CHAIN_NAME);
   const query = useQuery({
@@ -131,6 +146,7 @@ export function useRaceEntry(raceId, address) {
 export function useEscrowVault(address) {
   const { getCosmWasmClient } = useChain(CHAIN_NAME);
   const { value: race } = useRaceGlobal();
+  const { value: enrolling } = useEnrollingRace();
   const { data: historyData } = useRaceHistory(50);
 
   const raceIds = useMemo(() => {
@@ -138,8 +154,9 @@ export function useEscrowVault(address) {
     const history = historyData?.pages?.flatMap((p) => p.races ?? []) ?? [];
     history.forEach((r) => ids.add(r.race_id));
     if (race?.current_race_id) ids.add(race.current_race_id);
+    if (enrolling?.current_race_id) ids.add(enrolling.current_race_id);
     return [...ids].sort((a, b) => b - a);
-  }, [historyData, race?.current_race_id]);
+  }, [historyData, race?.current_race_id, enrolling?.current_race_id]);
 
   const query = useQuery({
     queryKey: ["escrow_vault", address, raceIds.join(",")],

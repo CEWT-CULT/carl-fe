@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useExec } from "@/hooks/useExec";
 import {
   useRaceGlobal,
+  useEnrollingRace,
   useRaceRoster,
   useSideBetDesk,
   useSideBet,
@@ -17,7 +18,7 @@ import { CHAIN_NAME } from "@/config";
 import { SPECIES, UNDERDOG_BET, speciesKey, speciesCapsLabel } from "@/utils/species";
 import { betTypeLabel, betTypeKey, dominantBetType, isOneSidedDesk, summarizeSideBetDesk } from "@/utils/sideBets";
 import { formatAtom, shortRunnerName } from "@/utils/race";
-import { isBettingOpen, phaseKey } from "@/utils/phases";
+import { isBettingOpen, phaseKey, bettingTargetRace, isEntryOpenForRace } from "@/utils/phases";
 import { useSideBetAmount } from "@/hooks/useSideBetAmount";
 import SideBetAmountField from "@/components/SideBetAmountField";
 import { useNowSec } from "@/hooks/useNowSec";
@@ -54,20 +55,22 @@ function betSelectionValue(betType, racerPick) {
 export default function BettingDesk({ connected = true }) {
   const { address } = useChain(CHAIN_NAME);
   const { value: race, query: raceQuery } = useRaceGlobal();
+  const { value: enrolling } = useEnrollingRace();
   const { value: config } = useConfig();
   const { value: phase } = useCurrentPhase();
   const nowSec = useNowSec();
-  const raceId = race?.current_race_id ?? 0;
-  const bettingOpen = race ? isBettingOpen(race, config, nowSec) : null;
+  const deskRace = bettingTargetRace(race, enrolling, config, nowSec);
+  const deskRaceId = deskRace?.current_race_id ?? 0;
+  const liveRaceId = race?.current_race_id ?? 0;
+  const pipelineDesk = enrolling && deskRaceId === enrolling.current_race_id;
+  const bettingOpen = deskRace ? isBettingOpen(deskRace, config, nowSec) : false;
   const phaseKeyVal = phaseKey(phase);
-  const deskOpenThroughReveals =
-    bettingOpen &&
-    phaseKeyVal &&
-    !["entry", "betting", "idle"].includes(phaseKeyVal);
+  const deskEntryOpen = deskRace ? isEntryOpenForRace(deskRace, nowSec) : false;
+  const deskOpenThroughReveals = bettingOpen && !deskEntryOpen;
 
-  const { value: roster } = useRaceRoster(raceId);
-  const { value: desk } = useSideBetDesk(raceId);
-  const { value: myBet, query: myBetQuery } = useSideBet(raceId, address);
+  const { value: roster } = useRaceRoster(deskRaceId);
+  const { value: desk } = useSideBetDesk(deskRaceId);
+  const { value: myBet, query: myBetQuery } = useSideBet(deskRaceId, address);
   const { value: user } = useUser(address);
 
   const { placeSideBet } = useExec();
@@ -175,9 +178,18 @@ export default function BettingDesk({ connected = true }) {
     <div className="w-full bg-carl-slate border border-carl-purple/25 rounded-xl p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-lg font-bold text-white">Side bets</h2>
+          <h2 className="text-lg font-bold text-white">
+            Side bets
+            {pipelineDesk && (
+              <span className="ml-2 text-sm font-semibold text-amber-200/90">
+                Race #{deskRaceId}
+              </span>
+            )}
+          </h2>
           <p className="text-xs text-carl-muted mt-0.5">
-            Pick an outcome and set your own wager — tribe, underdog, or individual racer.
+            {pipelineDesk
+              ? `Enter & bet on race #${deskRaceId} while race #${liveRaceId} is on track.`
+              : "Pick an outcome and set your own wager — tribe, underdog, or individual racer."}
           </p>
         </div>
         <div className="text-right text-sm">

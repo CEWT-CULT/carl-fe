@@ -6,11 +6,12 @@ import { useNftRaceActions } from "@/hooks/useNftRaceActions";
 import { useNftImages } from "@/hooks/useNftImages";
 import { hashCommitment } from "@/utils/race";
 import { saveRevealPayload } from "@/utils/revealStorage";
-import { useRaceGlobal, useCurrentPhase, useRaceEntry } from "@/hooks";
+import { useRaceGlobal, useEnrollingRace, useCurrentPhase, useRaceEntry } from "@/hooks";
+import { useNowSec } from "@/hooks/useNowSec";
+import { entryTargetRace, isEntryOpenForRace } from "@/utils/phases";
 import { useChain } from "@/hooks/useChainClient";
 import { CHAIN_NAME, ENTRY_FEE_ATOM } from "@/config";
 import { SPECIES, getSpeciesById, getNftContracts, speciesCapsLabel } from "@/utils/species";
-import { isEntryOpen } from "@/utils/phases";
 import { ACTION } from "@/utils/raceTheme";
 import RunnerAvatar from "@/components/RunnerAvatar";
 import MiniPhaseTimer from "@/components/MiniPhaseTimer";
@@ -91,11 +92,14 @@ function SpeciesRow({ species, tokens, selected, onSelect, imageMap, loading }) 
 
 export default function EnterRaceFlow({ onClose }) {
   const { value: race, query: raceQuery } = useRaceGlobal();
+  const { value: enrolling } = useEnrollingRace();
   const { value: phase } = useCurrentPhase();
   const { address } = useChain(CHAIN_NAME);
-  const raceId = race?.current_race_id ?? 0;
+  const nowSec = useNowSec();
+  const entryRace = entryTargetRace(race, enrolling, nowSec);
+  const raceId = entryRace?.current_race_id ?? 0;
   const { value: existingEntry } = useRaceEntry(raceId, address);
-  const entryOpen = isEntryOpen(phase);
+  const entryOpen = entryRace ? isEntryOpenForRace(entryRace, nowSec) : false;
   const { queryTokens, enterRace } = useNftRaceActions();
 
   const [step, setStep] = useState("pick");

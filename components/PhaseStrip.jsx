@@ -1,12 +1,14 @@
 "use client";
 
-import { useRaceGlobal, useCurrentPhase, useConfig } from "@/hooks";
+import { useRaceGlobal, useEnrollingRace, useCurrentPhase, useConfig } from "@/hooks";
 import { useNowSec } from "@/hooks/useNowSec";
 import {
   nextPhaseDeadline,
   formatCountdownClock,
   isSettlementOpen,
   resolveDisplayPhaseKey,
+  entryCloseAt,
+  isEntryOpenForRace,
 } from "@/utils/phases";
 import { ACTION, getMarqueeCopy } from "@/utils/raceTheme";
 import { formatAtom } from "@/utils/race";
@@ -14,6 +16,7 @@ import { computeFirstPrize, ENTRY_POOL_SPLIT } from "@/utils/settlementPayouts";
 
 export default function PhaseStrip() {
   const { value: race } = useRaceGlobal();
+  const { value: enrolling } = useEnrollingRace();
   const { value: phase } = useCurrentPhase();
   const { value: config } = useConfig();
   const nowSec = useNowSec(!!race && !race?.is_settled);
@@ -82,6 +85,18 @@ export default function PhaseStrip() {
           <p className="mt-1.5 text-xs font-semibold uppercase tracking-widest text-carl-muted sm:text-sm">
             {subline}
           </p>
+          {enrolling && !race.is_settled && (
+            <p className="mt-2 text-xs font-semibold text-amber-200/90">
+              {isEntryOpenForRace(enrolling, nowSec)
+                ? `Race #${enrolling.current_race_id} open for entry & bets`
+                : `Race #${enrolling.current_race_id} opens when prep starts`}
+            </p>
+          )}
+          {!enrolling && !race.is_settled && entryCloseAt(race) != null && nowSec < entryCloseAt(race) && (
+            <p className="mt-2 text-xs text-carl-muted">
+              Next race opens when prep closes for race #{raceId}
+            </p>
+          )}
         </div>
 
         <div className="flex flex-wrap items-stretch justify-center gap-3 sm:justify-end">

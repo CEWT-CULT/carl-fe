@@ -189,6 +189,25 @@ export function useExec() {
         error: "Advance failed",
       });
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["race_global"] });
+      queryClient.invalidateQueries({ queryKey: ["enrolling_race"] });
+    },
+  });
+
+  const openNextRace = useMutation({
+    mutationFn: async () => {
+      const msg = { open_next_race: {} };
+      return toastExec(execute(msg), {
+        loading: "Opening next race...",
+        success: "Next race is open for entry",
+        error: "Could not open next race",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["enrolling_race"] });
+      queryClient.invalidateQueries({ queryKey: ["race_global"] });
+    },
   });
 
   const claimRacerNft = useMutation({
@@ -244,6 +263,7 @@ export function useExec() {
     crankRacePreview,
     commitHouseSeed,
     advanceRace,
+    openNextRace,
     claimRacerNft,
     claimWager,
     adminRainOut,

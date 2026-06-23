@@ -3,8 +3,9 @@
 import { CONTRACT, CHAIN_NAME } from "@/config";
 import { useChain } from "@/hooks/useChainClient";
 import { useState } from "react";
-import { useRaceGlobal, useCurrentPhase, useRaceEntry } from "@/hooks";
-import { isEntryOpen } from "@/utils/phases";
+import { useRaceGlobal, useEnrollingRace, useCurrentPhase, useRaceEntry } from "@/hooks";
+import { useNowSec } from "@/hooks/useNowSec";
+import { entryTargetRace, isEntryOpenForRace } from "@/utils/phases";
 import { ACTION } from "@/utils/raceTheme";
 import PhaseStrip from "@/components/PhaseStrip";
 import RacerRevealBanner from "@/components/RacerRevealBanner";
@@ -14,16 +15,20 @@ import VaultBar from "@/components/VaultBar";
 import EnterRaceFlow from "@/components/EnterRaceFlow";
 import BettingDesk from "@/components/BettingDesk";
 import ClaimNftCard from "@/components/ClaimNftCard";
+import OpenNextRaceCrank from "@/components/OpenNextRaceCrank";
 
 export default function Home() {
   const { status, address } = useChain(CHAIN_NAME);
   const [showEnter, setShowEnter] = useState(false);
   const { value: race } = useRaceGlobal();
+  const { value: enrolling } = useEnrollingRace();
   const { value: phase } = useCurrentPhase();
-  const raceId = race?.current_race_id ?? 0;
+  const nowSec = useNowSec();
+  const entryRace = entryTargetRace(race, enrolling, nowSec);
+  const raceId = entryRace?.current_race_id ?? race?.current_race_id ?? 0;
   const { value: existingEntry } = useRaceEntry(raceId, address);
 
-  const entryOpen = isEntryOpen(phase);
+  const entryOpen = entryRace ? isEntryOpenForRace(entryRace, nowSec) : false;
   const alreadyEntered = !!existingEntry;
   const enterDisabled = !entryOpen || alreadyEntered || race?.is_settled;
   const enterHint = alreadyEntered
@@ -34,6 +39,7 @@ export default function Home() {
 
   return (
     <>
+      <OpenNextRaceCrank />
       {showEnter && <EnterRaceFlow onClose={() => setShowEnter(false)} />}
 
       <div className="w-full px-3 sm:px-5 lg:px-8 py-4 flex-1 max-w-[100rem] mx-auto">

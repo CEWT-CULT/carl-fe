@@ -140,6 +140,34 @@ export function isEntryOpen(phase) {
   return phaseKey(phase) === "entry";
 }
 
+/** Mirrors contract `is_entry_open` for a specific race record. */
+export function isEntryOpenForRace(race, nowSec = Date.now() / 1000) {
+  if (!race || race.is_settled) return false;
+  const close = entryCloseAt(race);
+  return close != null && nowSec < close;
+}
+
+/** Race accepting NFT entries — running prep first, then pipeline enrolling. */
+export function entryTargetRace(running, enrolling, nowSec = Date.now() / 1000) {
+  if (running && !running.is_settled && isEntryOpenForRace(running, nowSec)) return running;
+  if (enrolling && isEntryOpenForRace(enrolling, nowSec)) return enrolling;
+  return null;
+}
+
+/** Race accepting side bets — enrolling desk when pipeline is live. */
+export function bettingTargetRace(running, enrolling, config, nowSec = Date.now() / 1000) {
+  if (enrolling && isBettingOpen(enrolling, config, nowSec)) return enrolling;
+  if (running && isBettingOpen(running, config, nowSec)) return running;
+  return null;
+}
+
+/** True when a permissionless `open_next_race` crank should run. */
+export function shouldOpenNextRace(running, enrolling, nowSec = Date.now() / 1000) {
+  if (!running || running.is_settled || enrolling) return false;
+  const prepClose = entryCloseAt(running);
+  return prepClose != null && nowSec >= prepClose;
+}
+
 export function isCrowdCommitOpen(phase, race, config, nowSec = Date.now() / 1000) {
   if (!race || race.is_settled || !crowdPhasesEnabled(race)) return false;
   if (isCombinedPrepSchedule(race)) {
