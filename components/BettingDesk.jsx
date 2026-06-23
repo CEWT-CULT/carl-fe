@@ -305,13 +305,6 @@ export default function BettingDesk({ connected = true }) {
         </div>
       )}
 
-      {bettingOpen === true && bettorCount > 0 && !oneSided && (
-        <p className="text-carl-accent/90 text-sm mb-4">
-          Market open — {desk.distinct_bet_types} side{desk.distinct_bet_types === 1 ? "" : "s"} ·{" "}
-          {bettorCount} wager{bettorCount === 1 ? "" : "s"}
-        </p>
-      )}
-
       {connected && !alreadyBet && (
         <>
           <div className="flex flex-col sm:flex-row gap-3 mb-4">

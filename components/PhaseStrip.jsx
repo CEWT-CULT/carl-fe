@@ -9,6 +9,8 @@ import {
   resolveDisplayPhaseKey,
 } from "@/utils/phases";
 import { ACTION, getMarqueeCopy } from "@/utils/raceTheme";
+import { formatAtom } from "@/utils/race";
+import { computeFirstPrize, ENTRY_POOL_SPLIT } from "@/utils/settlementPayouts";
 
 export default function PhaseStrip() {
   const { value: race } = useRaceGlobal();
@@ -47,6 +49,10 @@ export default function PhaseStrip() {
   const countdownSec =
     deadline && deadline.at > nowSec ? Math.max(0, deadline.at - nowSec) : 0;
 
+  const entryPoolUatom = race.total_entry_pool ?? 0;
+  const firstPrizeUatom = computeFirstPrize(entryPoolUatom);
+  const showPrize = !race.is_settled;
+
   const timerLabel = race.is_settled
     ? "STATUS"
     : settlementReady
@@ -78,13 +84,28 @@ export default function PhaseStrip() {
           </p>
         </div>
 
-        <div
-          className={`mx-auto shrink-0 rounded-lg border-2 px-5 py-3 text-center sm:mx-0 ${
-            settlementReady && !race.is_settled
-              ? "border-carl-accent bg-carl-purple/60"
-              : "border-carl-purple/50 bg-carl-slate/80"
-          }`}
-        >
+        <div className="flex flex-wrap items-stretch justify-center gap-3 sm:justify-end">
+          {showPrize && (
+            <div className="mx-auto shrink-0 rounded-lg border-2 border-amber-500/45 bg-amber-950/30 px-5 py-3 text-center sm:mx-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-amber-200/90">
+                1st prize
+              </p>
+              <p className="mt-0.5 font-mono text-3xl font-black tabular-nums tracking-tight text-amber-100 sm:text-4xl">
+                {formatAtom(firstPrizeUatom)}
+              </p>
+              <p className="mt-1 text-[10px] uppercase tracking-wide text-amber-200/70">
+                ATOM · {ENTRY_POOL_SPLIT.firstPrizePct}% of entry pool
+              </p>
+            </div>
+          )}
+
+          <div
+            className={`mx-auto shrink-0 rounded-lg border-2 px-5 py-3 text-center sm:mx-0 ${
+              settlementReady && !race.is_settled
+                ? "border-carl-accent bg-carl-purple/60"
+                : "border-carl-purple/50 bg-carl-slate/80"
+            }`}
+          >
           <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white">
             {timerLabel}
           </p>
@@ -109,6 +130,7 @@ export default function PhaseStrip() {
               First runner starts clock
             </p>
           )}
+          </div>
         </div>
       </div>
     </section>
