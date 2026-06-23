@@ -416,7 +416,7 @@ export default function BettingDesk({ connected = true }) {
       {desk?.bets?.length > 0 && (
         <div className="mt-5 border-t border-carl-purple/25 pt-4">
           <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-2">
-            Live desk ({deskSummary.totalWagers})
+            Live desk ({deskSummary.totalWagers}) (bets entered)
           </p>
           <ul className="flex flex-wrap gap-2">
             {desk.bets.map((b) => {

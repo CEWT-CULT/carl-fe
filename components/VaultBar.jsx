@@ -6,6 +6,7 @@ import { useChain } from "@/hooks/useChainClient";
 import { useExec } from "@/hooks/useExec";
 import { useUserBalance, useUser } from "@/hooks";
 import { formatAtom } from "@/utils/race";
+import { ACTION } from "@/utils/raceTheme";
 
 const MODE_BTN =
   "px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-default";
@@ -118,7 +119,7 @@ export default function VaultBar({ onEnterRace, enterDisabled, enterHint }) {
             disabled={enterDisabled}
             className="w-full bg-carl-purple hover:bg-carl-navy disabled:bg-carl-midnight disabled:text-carl-muted border border-carl-accent/35 text-white font-black text-lg py-4 px-6 rounded-xl shadow-lg shadow-carl-plum/40 transition-colors"
           >
-            ENTER RACE
+            {ACTION.enterRace}
           </button>
           {enterHint && (
             <p className="text-xs text-center text-carl-muted mt-2">{enterHint}</p>

@@ -2,6 +2,7 @@
 
 export const ACTION = {
   ready: "READY",
+  enterRace: "ENTER RACE",
   readyPending: "Getting READY…",
   set: "GET SET",
   setPending: "Getting SET…",
