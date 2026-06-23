@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import {
-  useRaceGlobal,
   useRaceTelemetry,
   useRaceRoster,
   useRacePreview,
@@ -11,13 +10,14 @@ import {
   useSideBetDesk,
 } from "@/hooks";
 import { useNftImages } from "@/hooks/useNftImages";
+import { useFocusedRace } from "@/hooks/useFocusedRace";
 import { useNowSec } from "@/hooks/useNowSec";
 import { shortRunnerName, formatAtom } from "@/utils/race";
 import { speciesKey } from "@/utils/species";
 import RunnerAvatar from "@/components/RunnerAvatar";
 import LaneBetButton from "@/components/LaneBetButton";
 import RaceActionsBar from "@/components/RaceActionsBar";
-import { phaseKey, PHASE_LABELS, isRaceLive, isRevealWindowClosed, previewCrankLimit, previewProgressPct } from "@/utils/phases";
+import { phaseKey, PHASE_LABELS, isRaceLive, isRevealWindowClosed, previewCrankLimit, previewProgressPct, resolveDisplayPhaseKey } from "@/utils/phases";
 import { ACTION } from "@/utils/raceTheme";
 import {
   TICK_COUNT,
@@ -187,12 +187,11 @@ function DragRaceTrack({ laneRunners, imageMap, racerBetsByPick, className = "" 
 }
 
 export default function RaceTrack() {
-  const { value: race } = useRaceGlobal();
+  const { race, raceId, isUpcomingView } = useFocusedRace();
   const { value: phase } = useCurrentPhase();
   const { value: config } = useConfig();
   const nowSec = useNowSec();
-  const raceId = race?.current_race_id ?? 0;
-  const { value: telemetry } = useRaceTelemetry(raceId);
+  const { value: telemetry } = useRaceTelemetry(isUpcomingView ? null : raceId);
   const { value: roster } = useRaceRoster(raceId);
   const { value: desk } = useSideBetDesk(raceId);
 
@@ -201,15 +200,19 @@ export default function RaceTrack() {
     [desk]
   );
 
-  const isSettled = race?.is_settled && telemetry?.length > 0;
-  const raceLive = isRaceLive(race, nowSec) && !race?.is_settled;
+  const raceLive = !isUpcomingView && isRaceLive(race, nowSec) && !race?.is_settled;
+  const isSettled = !isUpcomingView && race?.is_settled && telemetry?.length > 0;
   const { value: preview } = useRacePreview(raceId, { enabled: raceLive });
 
   const [tick, setTick] = useState(0);
   const positionMemory = useRef({});
 
-  const phaseKeyVal = phaseKey(phase);
-  const phaseLabel = (phaseKeyVal && PHASE_LABELS[phaseKeyVal]) || "Loading…";
+  const phaseKeyVal = isUpcomingView
+    ? resolveDisplayPhaseKey(race, config, phase, nowSec)
+    : phaseKey(phase);
+  const phaseLabel = isUpcomingView
+    ? `Race #${raceId} signup · ${PHASE_LABELS[phaseKeyVal] || phaseKeyVal || "Prep"}`
+    : (phaseKeyVal && PHASE_LABELS[phaseKeyVal]) || "Loading…";
   const hasRoster = (roster?.length ?? 0) > 0 || (race?.total_runners ?? 0) > 0;
   const previewStep = race?.preview_step ?? 0;
   const crankLimit = previewCrankLimit(race, config);
@@ -226,7 +229,7 @@ export default function RaceTrack() {
   const rosterByPlayer = nftByPlayer;
 
   const markForfeit =
-    isSettled || raceLive || isRevealWindowClosed(race, nowSec);
+    !isUpcomingView && (isSettled || raceLive || isRevealWindowClosed(race, nowSec));
 
   useEffect(() => {
     setTick(0);
@@ -295,11 +298,11 @@ export default function RaceTrack() {
     <div className="flex w-full min-h-[420px] flex-col bg-gradient-to-b from-gray-900 to-gray-950 rounded-2xl p-3 sm:p-4 border border-gray-700/80 shadow-xl">
       <div className="mb-2 shrink-0 flex items-end justify-between gap-3">
         <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-[0.14em] text-carl-text">
-          ARENA
+          {isUpcomingView ? `Arena · Race #${raceId}` : "ARENA"}
         </h2>
       </div>
 
-      {raceLive && <RaceActionsBar embedded slot="live" />}
+      {!isUpcomingView && raceLive && <RaceActionsBar embedded slot="live" />}
 
       {(raceLive || isSettled) && (
         <div className="shrink-0">
@@ -322,11 +325,13 @@ export default function RaceTrack() {
                 <div className="bg-carl-track-gutter/90 backdrop-blur-sm rounded-xl px-4 sm:px-8 py-5 sm:py-6 text-center z-10 w-full max-w-3xl border border-carl-track-divider/50">
                   <p className="text-carl-text font-semibold text-lg">{phaseLabel}</p>
                   <p className="text-carl-muted text-sm mt-2 mb-4">
-                    {race?.total_runners > 0
-                      ? `${race.total_runners} entered — lanes appear when runners join`
-                      : "The track opens when the first NFT enters the race"}
+                    {isUpcomingView
+                      ? `${race?.total_runners ?? 0} entered for race #${raceId} — lanes fill as runners join`
+                      : race?.total_runners > 0
+                        ? `${race.total_runners} entered — lanes appear when runners join`
+                        : "The track opens when the first NFT enters the race"}
                   </p>
-                  {prepPhase && (
+                  {prepPhase && !isUpcomingView && (
                     <RaceActionsBar embedded slot="prep" inlineHub />
                   )}
                 </div>
@@ -335,12 +340,12 @@ export default function RaceTrack() {
             </div>
           )}
 
-          {prepPhase && showTrack && (
+          {prepPhase && !isUpcomingView && showTrack && (
             <RaceActionsBar embedded slot="prep" attachToTrack />
           )}
         </div>
 
-      {showTrack && prepPhase && hasRoster && (
+      {showTrack && prepPhase && hasRoster && !isUpcomingView && (
         <p className="text-center text-xs text-gray-500 mt-2 shrink-0">
           Lanes at the line — {ACTION.cheer}, {ACTION.set}, then {ACTION.go} when live.
         </p>

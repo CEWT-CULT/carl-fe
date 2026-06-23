@@ -20,6 +20,7 @@ import { betTypeLabel, betTypeKey, dominantBetType, isOneSidedDesk, summarizeSid
 import { formatAtom, shortRunnerName } from "@/utils/race";
 import { isBettingOpen, phaseKey, bettingTargetRace, isEntryOpenForRace, parseEnrollingRace } from "@/utils/phases";
 import { useSideBetAmount } from "@/hooks/useSideBetAmount";
+import { useFocusedRace } from "@/hooks/useFocusedRace";
 import SideBetAmountField from "@/components/SideBetAmountField";
 import { useNowSec } from "@/hooks/useNowSec";
 
@@ -55,16 +56,21 @@ function betSelectionValue(betType, racerPick) {
 export default function BettingDesk({ connected = true }) {
   const { address } = useChain(CHAIN_NAME);
   const { value: race, query: raceQuery } = useRaceGlobal();
+  const { enrolling, isUpcomingView, liveRaceId } = useFocusedRace();
   const { value: enrollingRaw } = useEnrollingRace();
-  const enrolling = parseEnrollingRace(enrollingRaw);
+  const parsedEnrolling = parseEnrollingRace(enrollingRaw);
   const { value: config } = useConfig();
   const { value: phase } = useCurrentPhase();
   const nowSec = useNowSec();
-  const deskRace = bettingTargetRace(race, enrolling, config, nowSec);
+  const deskRace = isUpcomingView && enrolling
+    ? enrolling
+    : bettingTargetRace(race, parsedEnrolling, config, nowSec);
   const deskRaceId = deskRace?.current_race_id ?? 0;
-  const liveRaceId = race?.current_race_id ?? 0;
   const pipelineDesk =
-    enrolling && deskRaceId === enrolling.current_race_id && liveRaceId !== deskRaceId;
+    !isUpcomingView &&
+    parsedEnrolling &&
+    deskRaceId === parsedEnrolling.current_race_id &&
+    liveRaceId !== deskRaceId;
   const bettingOpen = deskRace ? isBettingOpen(deskRace, config, nowSec) : false;
   const phaseKeyVal = phaseKey(phase);
   const deskEntryOpen = deskRace ? isEntryOpenForRace(deskRace, nowSec) : false;
@@ -182,16 +188,18 @@ export default function BettingDesk({ connected = true }) {
         <div>
           <h2 className="text-lg font-bold text-white">
             Side bets
-            {pipelineDesk && (
+            {(pipelineDesk || isUpcomingView) && (
               <span className="ml-2 text-sm font-semibold text-amber-200/90">
                 Race #{deskRaceId}
               </span>
             )}
           </h2>
           <p className="text-xs text-carl-muted mt-0.5">
-            {pipelineDesk
-              ? `Enter & bet on race #${deskRaceId} while race #${liveRaceId} is on track.`
-              : "Pick an outcome and set your own wager — tribe, underdog, or individual racer."}
+            {isUpcomingView
+              ? `Betting desk for upcoming race #${deskRaceId}.`
+              : pipelineDesk
+                ? `Enter & bet on race #${deskRaceId} while race #${liveRaceId} is on track.`
+                : "Pick an outcome and set your own wager — tribe, underdog, or individual racer."}
           </p>
         </div>
         <div className="text-right text-sm">

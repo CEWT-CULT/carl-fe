@@ -4,7 +4,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useExec } from "@/hooks/useExec";
 import {
-  useRaceGlobal,
   useSideBet,
   useUser,
   useConfig,
@@ -16,6 +15,7 @@ import { useNowSec } from "@/hooks/useNowSec";
 import { formatAtom, shortRunnerName } from "@/utils/race";
 import { speciesKey } from "@/utils/species";
 import { useSideBetAmount } from "@/hooks/useSideBetAmount";
+import { useFocusedRace } from "@/hooks/useFocusedRace";
 import SideBetAmountField from "@/components/SideBetAmountField";
 
 function usePopoverPosition(open, anchorRef, popoverRef) {
@@ -72,10 +72,9 @@ function usePopoverPosition(open, anchorRef, popoverRef) {
 
 export default function LaneBetButton({ runner }) {
   const { address } = useChain(CHAIN_NAME);
-  const { value: race } = useRaceGlobal();
+  const { race, raceId } = useFocusedRace();
   const { value: config } = useConfig();
   const nowSec = useNowSec();
-  const raceId = race?.current_race_id ?? 0;
   const bettingOpen = race ? isBettingOpen(race, config, nowSec) : false;
 
   const { value: myBet } = useSideBet(raceId, address);

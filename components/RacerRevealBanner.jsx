@@ -1,6 +1,11 @@
 "use client";
 
-import { useRaceGlobal, useConfig, useRaceEntry } from "@/hooks";
+import {
+  useRaceGlobal,
+  useRaceEntry,
+  useConfig,
+} from "@/hooks";
+import { useRaceView } from "@/context/RaceViewContext";
 import { useChain } from "@/hooks/useChainClient";
 import { CHAIN_NAME } from "@/config";
 import { useNowSec } from "@/hooks/useNowSec";
@@ -12,6 +17,7 @@ import {
 import { ACTION } from "@/utils/raceTheme";
 
 export default function RacerRevealBanner() {
+  const { showUpcoming } = useRaceView();
   const { address, status } = useChain(CHAIN_NAME);
   const { value: race } = useRaceGlobal();
   const { value: config } = useConfig();
@@ -19,7 +25,7 @@ export default function RacerRevealBanner() {
   const { value: entry } = useRaceEntry(raceId, address);
   const nowSec = useNowSec(status === "Connected" && !!entry && !entry?.revealed_action);
 
-  if (status !== "Connected" || !race || race.is_settled) return null;
+  if (showUpcoming || status !== "Connected" || !race || race.is_settled) return null;
 
   const schedule = getRunnerSetSchedule(race, config, entry, nowSec);
   if (schedule.status === "hidden" || schedule.status === "not_entered" || schedule.status === "done") {

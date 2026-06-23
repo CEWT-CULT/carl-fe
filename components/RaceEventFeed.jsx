@@ -5,6 +5,7 @@ import {
   useRaceGlobal,
   useConfig,
 } from "@/hooks";
+import { useRaceView } from "@/context/RaceViewContext";
 import { useNowSec } from "@/hooks/useNowSec";
 import { isRaceLive } from "@/utils/phases";
 import { diffRaceEvents } from "@/utils/raceEvents";
@@ -12,6 +13,7 @@ import { diffRaceEvents } from "@/utils/raceEvents";
 const MAX_EVENTS = 8;
 
 export default function RaceEventFeed() {
+  const { showUpcoming } = useRaceView();
   const { value: race } = useRaceGlobal();
   const { value: config } = useConfig();
   const [events, setEvents] = useState([]);
@@ -63,7 +65,7 @@ export default function RaceEventFeed() {
 
   const hasActivity = events.length > 0;
 
-  if (!hasActivity) return null;
+  if (showUpcoming || !hasActivity) return null;
 
   return (
     <section

@@ -7,7 +7,9 @@ import { useRaceGlobal, useEnrollingRace, useCurrentPhase, useRaceEntry } from "
 import { useNowSec } from "@/hooks/useNowSec";
 import { entryTargetRace, isEntryOpenForRace, parseEnrollingRace } from "@/utils/phases";
 import { ACTION } from "@/utils/raceTheme";
+import { RaceViewProvider } from "@/context/RaceViewContext";
 import PhaseStrip from "@/components/PhaseStrip";
+import RaceViewBanner from "@/components/RaceViewBanner";
 import RacerRevealBanner from "@/components/RacerRevealBanner";
 import RaceTrack from "@/components/RaceTrack";
 import RaceEventFeed from "@/components/RaceEventFeed";
@@ -38,7 +40,7 @@ export default function Home() {
       : null;
 
   return (
-    <>
+    <RaceViewProvider enrollingRaceId={enrolling?.current_race_id ?? null}>
       {showEnter && <EnterRaceFlow onClose={() => setShowEnter(false)} />}
 
       <div className="w-full px-3 sm:px-5 lg:px-8 py-4 flex-1 max-w-[100rem] mx-auto">
@@ -51,9 +53,11 @@ export default function Home() {
 
         <PhaseStrip />
 
+        <RaceViewBanner />
+
         <RacerRevealBanner />
 
-        <section aria-label="Race track" className="mb-4 min-h-[420px]">
+        <section id="race-arena" aria-label="Race track" className="mb-4 min-h-[420px]">
           <RaceTrack />
         </section>
 
@@ -84,6 +88,6 @@ export default function Home() {
           </div>
         )}
       </div>
-    </>
+    </RaceViewProvider>
   );
 }

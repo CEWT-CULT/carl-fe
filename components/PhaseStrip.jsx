@@ -18,7 +18,8 @@ import {
 import { ACTION, getMarqueeCopy } from "@/utils/raceTheme";
 import { formatAtom } from "@/utils/race";
 import { computeFirstPrize, ENTRY_POOL_SPLIT } from "@/utils/settlementPayouts";
-import UpcomingRaceEntries from "@/components/UpcomingRaceEntries";
+import UpcomingRaceEntriesToggle from "@/components/UpcomingRaceEntries";
+import { useRaceView } from "@/context/RaceViewContext";
 
 export default function PhaseStrip() {
   const { value: race } = useRaceGlobal();
@@ -28,6 +29,7 @@ export default function PhaseStrip() {
   const { value: config } = useConfig();
   const { address } = useChain(CHAIN_NAME);
   const { openNextRace } = useExec();
+  const { showUpcoming } = useRaceView();
   const nowSec = useNowSec(!!race && !race?.is_settled);
 
   if (!race) {
@@ -99,9 +101,9 @@ export default function PhaseStrip() {
             {subline}
           </p>
           {displayKey === "crowd_reveal" && enrolling && !race.is_settled && (
-            <UpcomingRaceEntries raceId={enrolling.current_race_id} />
+            <UpcomingRaceEntriesToggle raceId={enrolling.current_race_id} />
           )}
-          {enrolling && !race.is_settled && (
+          {enrolling && !race.is_settled && !showUpcoming && (
             <p className="mt-2 text-xs font-semibold text-amber-200/90">
               {isEntryOpenForRace(enrolling, nowSec)
                 ? `Race #${enrolling.current_race_id} — enter & bet while race #${raceId} plays out`
