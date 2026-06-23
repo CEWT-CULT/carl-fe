@@ -56,7 +56,7 @@ export const ENTRY_FEE_UATOM = "250000";
 
 export const META = {
   title: "C.A.R.L",
-  description: "Cosmos Animal Racing League — secure vault-based NFT racing by Fyveonit",
+  description: "Cosmos Animal Racing League — vault-based NFT racing by Fyveonit",
   url: "http://localhost:3000",
   logo: "/icons/logo.webp",
 };
