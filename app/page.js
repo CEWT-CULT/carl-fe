@@ -53,6 +53,13 @@ export default function Home() {
 
         <PhaseStrip />
 
+        {status !== "Connected" && (
+          <div className="bg-gray-900 rounded-xl p-12 text-center text-gray-400 border border-gray-800 mb-4">
+            <p className="text-lg font-medium text-gray-300 mb-2">Connect to play</p>
+            <p className="text-sm">Connect Keplr on Cosmos Hub to enter races and bet.</p>
+          </div>
+        )}
+
         <RaceViewBanner />
 
         <RacerRevealBanner />
@@ -79,13 +86,6 @@ export default function Home() {
           <section aria-label="Withdraw escrowed NFTs" className="mt-4 mb-4">
             <ClaimNftCard />
           </section>
-        )}
-
-        {status !== "Connected" && (
-          <div className="bg-gray-900 rounded-xl p-12 text-center text-gray-400 border border-gray-800 mt-4">
-            <p className="text-lg font-medium text-gray-300 mb-2">Connect to play</p>
-            <p className="text-sm">Connect Keplr on Cosmos Hub to enter races and bet.</p>
-          </div>
         )}
       </div>
     </RaceViewProvider>
