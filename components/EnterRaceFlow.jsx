@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNftRaceActions } from "@/hooks/useNftRaceActions";
 import { useNftImages } from "@/hooks/useNftImages";
 import { hashCommitment } from "@/utils/race";
-import { saveRevealPayload } from "@/utils/revealStorage";
+import { saveRevealPayload, formatRevealCredentials } from "@/utils/revealStorage";
 import { useRaceGlobal, useEnrollingRace, useCurrentPhase, useRaceEntry } from "@/hooks";
 import { useNowSec } from "@/hooks/useNowSec";
 import { entryTargetRace, isEntryOpenForRace, parseEnrollingRace } from "@/utils/phases";
@@ -175,6 +175,9 @@ export default function EnterRaceFlow({ onClose }) {
           }
           raceQuery.refetch();
           onClose?.();
+          window.alert(
+            `${formatRevealCredentials({ raceId, action, salt })}\n\nCopied nowhere? Paste this into Notes now — GET SET needs the exact tactic and salt.`
+          );
         },
       }
     );
@@ -272,7 +275,7 @@ export default function EnterRaceFlow({ onClose }) {
               ))}
             </div>
 
-            <label className="flex items-center gap-2 text-gray-400 text-sm mb-6">
+            <label className="flex items-center gap-2 text-gray-400 text-sm mb-4">
               <input
                 type="checkbox"
                 checked={payFromVault}
@@ -280,6 +283,31 @@ export default function EnterRaceFlow({ onClose }) {
               />
               Pay {ENTRY_FEE_ATOM} ATOM entry fee from vault
             </label>
+
+            <div className="mb-6 rounded-xl border-2 border-amber-500/45 bg-amber-950/30 p-4 text-left">
+              <p className="text-xs font-bold uppercase tracking-wide text-amber-200">
+                Save before you sign — required for GET SET
+              </p>
+              <p className="mt-2 text-sm text-amber-100/90">
+                Tactic: <strong className="text-white capitalize">{action}</strong>
+              </p>
+              <p className="mt-1 font-mono text-sm text-white break-all">{salt}</p>
+              <p className="mt-2 text-xs text-amber-200/80">
+                Only a hash goes on-chain. If you lose this salt, GET SET will fail and cannot be
+                recovered from the blockchain.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard?.writeText(
+                    formatRevealCredentials({ raceId, action, salt })
+                  );
+                }}
+                className="mt-3 rounded-lg border border-amber-400/50 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-amber-100 hover:bg-amber-900/40"
+              >
+                Copy GET SET credentials
+              </button>
+            </div>
 
             <button
               type="button"
@@ -294,7 +322,8 @@ export default function EnterRaceFlow({ onClose }) {
                   : "Entry closed"}
             </button>
             <p className="text-gray-600 text-xs text-center mt-3">
-              Your reveal salt is saved in this browser after entry.
+              Salt is also saved in this browser when entry succeeds — copy it above if you use
+              Ledger or another device for GET SET.
             </p>
           </div>
         )}
