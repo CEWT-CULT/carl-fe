@@ -5,7 +5,7 @@ import { useExec } from "@/hooks/useExec";
 import { useEscrowVault, useRaceGlobal } from "@/hooks";
 import { useChain } from "@/hooks/useChainClient";
 import { CHAIN_NAME } from "@/config";
-import { speciesInitial, speciesKey } from "@/utils/species";
+import { speciesInitial, wasmSpeciesLabel } from "@/utils/species";
 
 function vaultStatus(entry, raceId, currentRaceId, isCurrentSettled) {
   if (entry.nft_claimed) {
@@ -31,7 +31,6 @@ const STATUS_STYLES = {
 function VaultSlot({ item, selected, onSelect, currentRaceId, isCurrentSettled }) {
   const { raceId, entry } = item;
   const status = vaultStatus(entry, raceId, currentRaceId, isCurrentSettled);
-  const species = speciesKey({ species: entry.species }) ?? "runner";
   const initial = speciesInitial(entry.species);
   const isSelected = selected === raceId;
 
@@ -52,7 +51,7 @@ function VaultSlot({ item, selected, onSelect, currentRaceId, isCurrentSettled }
         {initial}
       </div>
       <p className="text-white font-semibold text-sm truncate w-full text-center">
-        {species.charAt(0).toUpperCase() + species.slice(1)} #{entry.nft_id}
+        {wasmSpeciesLabel(entry.species)} #{entry.nft_id}
       </p>
       <p className="text-gray-500 text-xs font-mono mt-0.5">Race #{raceId}</p>
       <span

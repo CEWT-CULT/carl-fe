@@ -1,3 +1,5 @@
+import { wasmSpeciesLabel } from "./species";
+
 const ACTION_NAMES = {
   saboteur: "saboteur",
   cheerleader: "cheerleader",
@@ -72,7 +74,7 @@ export function getDistancePercentage(distance, maxDistance) {
 
 export function shortRunnerName(player, species) {
   const tail = player ? player.slice(-4) : "????";
-  const label = species ? species.slice(0, 1) + species.slice(1).toLowerCase() : "Runner";
+  const label = species ? wasmSpeciesLabel(species) : "Runner";
   return `${label} ·${tail}`;
 }
 
