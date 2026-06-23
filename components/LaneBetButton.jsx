@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useExec } from "@/hooks/useExec";
 import {
   useRaceGlobal,
@@ -14,8 +15,60 @@ import { isBettingOpen } from "@/utils/phases";
 import { useNowSec } from "@/hooks/useNowSec";
 import { formatAtom, shortRunnerName } from "@/utils/race";
 import { speciesKey } from "@/utils/species";
+import { useSideBetAmount } from "@/hooks/useSideBetAmount";
+import SideBetAmountField from "@/components/SideBetAmountField";
 
-const DEFAULT_AMOUNT = "0.01";
+function usePopoverPosition(open, anchorRef, popoverRef) {
+  const [style, setStyle] = useState(null);
+
+  const update = useCallback(() => {
+    const anchor = anchorRef.current;
+    const popover = popoverRef.current;
+    if (!anchor || !popover) return;
+
+    const rect = anchor.getBoundingClientRect();
+    const popH = popover.offsetHeight;
+    const popW = popover.offsetWidth;
+    const gap = 8;
+    const pad = 8;
+
+    let top = rect.top - popH - gap;
+    let left = rect.left;
+
+    if (top < pad) {
+      top = rect.bottom + gap;
+    }
+    if (left + popW > window.innerWidth - pad) {
+      left = window.innerWidth - popW - pad;
+    }
+    if (left < pad) left = pad;
+
+    setStyle({
+      position: "fixed",
+      top: `${Math.round(top)}px`,
+      left: `${Math.round(left)}px`,
+      zIndex: 9999,
+    });
+  }, [anchorRef, popoverRef]);
+
+  useEffect(() => {
+    if (!open) {
+      setStyle(null);
+      return;
+    }
+    update();
+    const raf = requestAnimationFrame(update);
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [open, update]);
+
+  return style;
+}
 
 export default function LaneBetButton({ runner }) {
   const { address } = useChain(CHAIN_NAME);
@@ -28,9 +81,11 @@ export default function LaneBetButton({ runner }) {
   const { value: myBet } = useSideBet(raceId, address);
   const { value: user } = useUser(address);
   const { placeSideBet } = useExec();
+  const { amount, setAmount, amountUatom, hasValidAmount } = useSideBetAmount();
 
   const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState(DEFAULT_AMOUNT);
+  const [mounted, setMounted] = useState(false);
+  const anchorRef = useRef(null);
   const popoverRef = useRef(null);
 
   const connected = !!address;
@@ -39,16 +94,23 @@ export default function LaneBetButton({ runner }) {
   const showButton = connected && bettingOpen && !alreadyBet && player;
 
   const vaultUatom = Number(user?.deposits ?? 0);
-  const amountUatom = Math.floor(parseFloat(amount || "0") * 1_000_000);
-  const hasValidAmount = amountUatom > 0;
   const hasVaultFunds = vaultUatom >= amountUatom;
+
+  const popoverStyle = usePopoverPosition(open, anchorRef, popoverRef);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!open) return;
     const onDocClick = (e) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target)) {
-        setOpen(false);
+      const t = e.target;
+      if (
+        anchorRef.current?.contains(t) ||
+        popoverRef.current?.contains(t)
+      ) {
+        return;
       }
+      setOpen(false);
     };
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
@@ -68,50 +130,61 @@ export default function LaneBetButton({ runner }) {
     );
   };
 
-  return (
-    <div ref={popoverRef} className="relative shrink-0">
-      <button
-        type="button"
-        title={`Bet on ${label}`}
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen((v) => !v);
-        }}
-        className="h-8 w-8 rounded-full border-2 border-yellow-400/80 bg-yellow-600 hover:bg-yellow-500 text-white text-xs font-black shadow-lg shadow-black/40 transition-colors"
+  const popover =
+    open && mounted ? (
+      <div
+        ref={popoverRef}
+        style={popoverStyle ?? { position: "fixed", visibility: "hidden", zIndex: 9999 }}
+        className="w-56 rounded-lg border border-gray-600 bg-gray-900 p-3 shadow-2xl shadow-black/60"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
         aria-label={`Bet on ${label}`}
       >
-        $
-      </button>
-
-      {open && (
-        <div
-          className="absolute bottom-full left-0 mb-2 z-30 w-52 rounded-lg border border-gray-600 bg-gray-900 p-3 shadow-xl"
-          onClick={(e) => e.stopPropagation()}
+        <p className="text-xs text-gray-400 mb-1">Individual racer bet</p>
+        <p className="text-sm font-semibold text-white truncate mb-2">{label}</p>
+        <SideBetAmountField
+          id={`lane-bet-amount-${player}`}
+          amount={amount}
+          onChange={setAmount}
+          vaultUatom={vaultUatom}
+          amountUatom={amountUatom}
+          hasValidAmount={hasValidAmount}
+          compact
+          className="mb-2"
+        />
+        <button
+          type="button"
+          onClick={handlePlace}
+          disabled={placeSideBet.isPending || !hasValidAmount || !hasVaultFunds}
+          className="w-full bg-yellow-600 hover:bg-yellow-500 disabled:bg-gray-800 disabled:text-gray-500 text-white text-sm font-bold py-2 rounded"
         >
-          <p className="text-xs text-gray-400 mb-1">Bet on racer</p>
-          <p className="text-sm font-semibold text-white truncate mb-2">{label}</p>
-          <label className="text-[10px] text-gray-500 uppercase tracking-wide">Amount (ATOM)</label>
-          <input
-            type="number"
-            min="0"
-            step="0.001"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="w-full mt-1 mb-2 bg-gray-950 border border-gray-700 text-white text-sm p-2 rounded"
-          />
-          {hasValidAmount && !hasVaultFunds && (
-            <p className="text-rose-400 text-xs mb-2">Deposit to vault first.</p>
-          )}
-          <button
-            type="button"
-            onClick={handlePlace}
-            disabled={placeSideBet.isPending || !hasValidAmount || !hasVaultFunds}
-            className="w-full bg-yellow-600 hover:bg-yellow-500 disabled:bg-gray-800 disabled:text-gray-500 text-white text-sm font-bold py-2 rounded"
-          >
-            {placeSideBet.isPending ? "Placing…" : `Bet ${formatAtom(amountUatom)}`}
-          </button>
-        </div>
-      )}
-    </div>
+          {placeSideBet.isPending
+            ? "Placing…"
+            : hasValidAmount
+              ? `Wager ${formatAtom(amountUatom)}`
+              : "Enter wager amount"}
+        </button>
+      </div>
+    ) : null;
+
+  return (
+    <>
+      <div ref={anchorRef} className="relative shrink-0 z-[2]">
+        <button
+          type="button"
+          title={`Bet on ${label}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen((v) => !v);
+          }}
+          className="h-8 w-8 rounded-full border-2 border-yellow-400/80 bg-yellow-600 hover:bg-yellow-500 text-white text-xs font-black shadow-lg shadow-black/40 transition-colors"
+          aria-label={`Bet on ${label}`}
+          aria-expanded={open}
+        >
+          $
+        </button>
+      </div>
+      {mounted && popover ? createPortal(popover, document.body) : null}
+    </>
   );
 }

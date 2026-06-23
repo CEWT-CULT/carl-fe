@@ -16,8 +16,10 @@ import { useChain } from "@/hooks/useChainClient";
 import { CHAIN_NAME } from "@/config";
 import { SPECIES, UNDERDOG_BET, speciesKey, speciesCapsLabel } from "@/utils/species";
 import { betTypeLabel, betTypeKey, dominantBetType, isOneSidedDesk, summarizeSideBetDesk } from "@/utils/sideBets";
+import { formatAtom, shortRunnerName } from "@/utils/race";
 import { isBettingOpen, phaseKey } from "@/utils/phases";
-import { formatAtom } from "@/utils/race";
+import { useSideBetAmount } from "@/hooks/useSideBetAmount";
+import SideBetAmountField from "@/components/SideBetAmountField";
 import { useNowSec } from "@/hooks/useNowSec";
 
 /** Unified desk tile — site palette, light gray borders */
@@ -32,6 +34,22 @@ const LIVE_CHIP_RACER =
   "rounded-lg border border-yellow-500/40 bg-yellow-950/30 px-3 py-2 text-sm min-w-[8rem]";
 const LIVE_CHIP_DEFAULT =
   "rounded-lg border border-gray-500/50 bg-carl-midnight/60 px-3 py-2 text-sm min-w-[8rem]";
+
+const RACER_VALUE_PREFIX = "racer:";
+
+function parseBetSelection(value) {
+  if (value.startsWith(RACER_VALUE_PREFIX)) {
+    return { betType: "racer_victory", pick: value.slice(RACER_VALUE_PREFIX.length) };
+  }
+  return { betType: value, pick: undefined };
+}
+
+function betSelectionValue(betType, racerPick) {
+  if (betType === "racer_victory" && racerPick) {
+    return `${RACER_VALUE_PREFIX}${racerPick}`;
+  }
+  return betType;
+}
 
 export default function BettingDesk({ connected = true }) {
   const { address } = useChain(CHAIN_NAME);
@@ -54,11 +72,10 @@ export default function BettingDesk({ connected = true }) {
 
   const { placeSideBet } = useExec();
   const [betType, setBetType] = useState("chicken_victory");
-  const [amount, setAmount] = useState("0.01");
+  const [racerPick, setRacerPick] = useState(null);
+  const { amount, setAmount, amountUatom, hasValidAmount } = useSideBetAmount();
 
   const vaultUatom = Number(user?.deposits ?? 0);
-  const amountUatom = Math.floor(parseFloat(amount || "0") * 1_000_000);
-  const hasValidAmount = amountUatom > 0;
   const hasVaultFunds = vaultUatom >= amountUatom;
 
   const counts = useMemo(
@@ -82,14 +99,25 @@ export default function BettingDesk({ connected = true }) {
     []
   );
 
+  const activeRoster = useMemo(
+    () => (roster ?? []).filter((r) => r.player),
+    [roster]
+  );
+
   useEffect(() => {
     if (betType === UNDERDOG_BET.id) return;
+    if (betType === "racer_victory") {
+      if (racerPick && activeRoster.some((r) => r.player === racerPick)) return;
+      setRacerPick(activeRoster[0]?.player ?? null);
+      return;
+    }
     if (!speciesBetTypes.has(betType)) return;
     const stillActive = activeSpecies.some((s) => s.betType === betType);
     if (!stillActive) {
       setBetType(activeSpecies[0]?.betType ?? UNDERDOG_BET.id);
+      setRacerPick(null);
     }
-  }, [betType, activeSpecies, speciesBetTypes]);
+  }, [betType, activeSpecies, speciesBetTypes, activeRoster, racerPick]);
 
   const oneSided = bettingOpen === true && isOneSidedDesk(desk);
   const dominant = dominantBetType(desk);
@@ -117,16 +145,40 @@ export default function BettingDesk({ connected = true }) {
 
   const betLabelOpts = { rosterByPlayer, collectionNames };
 
+  const handleBetSelectionChange = (value) => {
+    const parsed = parseBetSelection(value);
+    setBetType(parsed.betType);
+    setRacerPick(parsed.pick ?? null);
+  };
+
+  const handleTribeTileClick = (speciesBetType) => {
+    setBetType(speciesBetType);
+    setRacerPick(null);
+  };
+
   const handleBet = () => {
     if (!connected || !hasValidAmount || !hasVaultFunds) return;
-    placeSideBet.mutate({ betType, amountUatom });
+    if (betType === "racer_victory" && !racerPick) return;
+    placeSideBet.mutate({
+      betType,
+      amountUatom,
+      pick: betType === "racer_victory" ? racerPick : undefined,
+    });
   };
+
+  const betTargetLabel =
+    betType === "racer_victory" && racerPick
+      ? betTypeLabel("racer_victory", { pick: racerPick, ...betLabelOpts })
+      : betTypeLabel(betType);
 
   return (
     <div className="w-full bg-carl-slate border border-carl-purple/25 rounded-xl p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div>
           <h2 className="text-lg font-bold text-white">Side bets</h2>
+          <p className="text-xs text-carl-muted mt-0.5">
+            Pick an outcome and set your own wager — tribe, underdog, or individual racer.
+          </p>
         </div>
         <div className="text-right text-sm">
           <p className="text-gray-400">
@@ -178,10 +230,10 @@ export default function BettingDesk({ connected = true }) {
               <button
                 key={s.id}
                 type="button"
-                onClick={() => setBetType(s.betType)}
+                onClick={() => handleTribeTileClick(s.betType)}
                 disabled={connected && alreadyBet}
                 className={`rounded-lg px-3 py-2 min-w-[5.5rem] text-center transition-colors disabled:cursor-default ${
-                  betType === s.betType && !alreadyBet ? DESK_TILE_SELECTED : DESK_TILE
+                  betType === s.betType && !racerPick && !alreadyBet ? DESK_TILE_SELECTED : DESK_TILE
                 } ${!alreadyBet ? "hover:border-gray-400/70 cursor-pointer" : ""}`}
               >
                 <p className="text-xl font-bold leading-none text-white">{counts[s.id]}</p>
@@ -264,13 +316,13 @@ export default function BettingDesk({ connected = true }) {
         <>
           <div className="flex flex-col sm:flex-row gap-3 mb-4">
             <div className="flex-1 min-w-0">
-              <label htmlFor="side-bet-tribe" className="text-xs text-gray-400 block mb-1 uppercase tracking-wide">
-                SIDE BET OPTIONS
+              <label htmlFor="side-bet-choice" className="text-xs text-gray-400 block mb-1 uppercase tracking-wide">
+                Side bet options
               </label>
               <select
-                id="side-bet-tribe"
-                value={betType}
-                onChange={(e) => setBetType(e.target.value)}
+                id="side-bet-choice"
+                value={betSelectionValue(betType, racerPick)}
+                onChange={(e) => handleBetSelectionChange(e.target.value)}
                 disabled={bettingOpen !== true}
                 className="w-full bg-gray-950 border border-gray-600 text-white font-semibold p-2.5 rounded-lg disabled:opacity-50 appearance-none cursor-pointer"
               >
@@ -287,34 +339,38 @@ export default function BettingDesk({ connected = true }) {
                     </option>
                   )}
                 </optgroup>
+                {activeRoster.length > 0 && (
+                  <optgroup label="Individual racers">
+                    {activeRoster.map((r) => {
+                      const sk = speciesKey(r);
+                      return (
+                        <option key={r.player} value={`${RACER_VALUE_PREFIX}${r.player}`}>
+                          {shortRunnerName(r.player, sk)}
+                          {r.nft_id != null ? ` · #${r.nft_id}` : ""}
+                        </option>
+                      );
+                    })}
+                  </optgroup>
+                )}
                 <optgroup label="Special">
                   <option value={UNDERDOG_BET.id}>{UNDERDOG_BET.label.toUpperCase()}</option>
                 </optgroup>
               </select>
             </div>
-            <div className="sm:w-40 shrink-0">
-              <label htmlFor="side-bet-amount" className="text-xs text-gray-400 block mb-1">
-                Amount (ATOM)
-              </label>
-              <input
+            <div className="sm:w-44 shrink-0">
+              <SideBetAmountField
                 id="side-bet-amount"
-                type="number"
-                min="0"
-                step="0.001"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                amount={amount}
+                onChange={setAmount}
                 disabled={bettingOpen !== true}
-                className="w-full bg-gray-950 border border-gray-600 text-white p-2.5 rounded-lg disabled:opacity-50"
+                vaultUatom={vaultUatom}
+                amountUatom={amountUatom}
+                hasValidAmount={hasValidAmount}
               />
             </div>
           </div>
 
           <div className="flex flex-col justify-end">
-            {bettingOpen === true && hasValidAmount && !hasVaultFunds && (
-              <p className="text-rose-400 text-sm mb-2">
-                Need {formatAtom(amountUatom)} ATOM in vault — deposit below first.
-              </p>
-            )}
             <button
               type="button"
               onClick={handleBet}
@@ -323,6 +379,7 @@ export default function BettingDesk({ connected = true }) {
                 bettingOpen !== true ||
                 !hasValidAmount ||
                 !hasVaultFunds ||
+                (betType === "racer_victory" && !racerPick) ||
                 myBetQuery.isLoading
               }
               className="w-full bg-carl-purple hover:bg-carl-navy disabled:bg-carl-midnight disabled:text-carl-muted text-white font-bold py-3 px-4 rounded-lg"
@@ -330,7 +387,9 @@ export default function BettingDesk({ connected = true }) {
               {placeSideBet.isPending
                 ? "Placing bet…"
                 : bettingOpen === true
-                  ? `Bet ${formatAtom(amountUatom)} on ${betTypeLabel(betType)}`
+                  ? hasValidAmount
+                    ? `Wager ${formatAtom(amountUatom)} on ${betTargetLabel}`
+                    : "Enter wager amount"
                   : raceQuery.isLoading
                     ? "Loading…"
                     : "Betting closed"}
