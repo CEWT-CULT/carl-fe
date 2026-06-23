@@ -1,6 +1,6 @@
 "use client";
 
-import { useRaceGlobal, useEnrollingRace, useCurrentPhase, useConfig } from "@/hooks";
+import { useRaceGlobal, useEnrollingRace, useCurrentPhase, useConfig, useRaceRoster } from "@/hooks";
 import { useChain } from "@/hooks/useChainClient";
 import { CHAIN_NAME } from "@/config";
 import { useExec } from "@/hooks/useExec";
@@ -14,6 +14,8 @@ import {
   isEntryOpenForRace,
   shouldOpenNextRace,
   hasEnrollingRace,
+  shouldOfferRainOut,
+  rainOutReason,
 } from "@/utils/phases";
 import { ACTION, getMarqueeCopy } from "@/utils/raceTheme";
 import { formatAtom } from "@/utils/race";
@@ -28,7 +30,7 @@ export default function PhaseStrip() {
   const { value: phase } = useCurrentPhase();
   const { value: config } = useConfig();
   const { address } = useChain(CHAIN_NAME);
-  const { openNextRace } = useExec();
+  const { openNextRace, rainOutRace } = useExec();
   const { showUpcoming } = useRaceView();
   const nowSec = useNowSec(!!race && !race?.is_settled);
 
@@ -70,6 +72,9 @@ export default function PhaseStrip() {
   const needsNextRaceOpen =
     race && !race.is_settled && shouldOpenNextRace(race, enrollingRaw, nowSec);
   const nextRaceId = (race?.current_race_id ?? 0) + 1;
+  const { value: roster } = useRaceRoster(raceId);
+  const rainOutReady = shouldOfferRainOut(race, roster, nowSec);
+  const rainOutMessage = rainOutReason(race, roster, nowSec);
 
   const timerLabel = race.is_settled
     ? "STATUS"
@@ -130,6 +135,29 @@ export default function PhaseStrip() {
                 </button>
               ) : (
                 <p className="text-xs text-carl-muted">Connect wallet to open signup.</p>
+              )}
+            </div>
+          )}
+          {rainOutReady && (
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+              <p className="text-xs text-amber-200/90">{rainOutMessage}</p>
+              {address ? (
+                <button
+                  type="button"
+                  disabled={rainOutRace.isPending}
+                  onClick={() =>
+                    rainOutRace.mutate(undefined, {
+                      onSuccess: () => {
+                        enrollingQuery.refetch();
+                      },
+                    })
+                  }
+                  className="rounded-lg border border-amber-500/50 bg-amber-950/40 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-amber-100 hover:bg-amber-900/50 disabled:opacity-50"
+                >
+                  {rainOutRace.isPending ? "Raining out…" : "Rain out & next race"}
+                </button>
+              ) : (
+                <p className="text-xs text-carl-muted">Connect wallet to rain out.</p>
               )}
             </div>
           )}

@@ -251,6 +251,26 @@ export function useExec() {
     },
   });
 
+  const rainOutRace = useMutation({
+    mutationFn: async () => {
+      const msg = { rain_out_race: {} };
+      return toastExec(execute(msg), {
+        loading: "Raining out race…",
+        success: "Race rained out — next race opening",
+        error: "Rain-out failed",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["race_entry"] });
+      queryClient.invalidateQueries({ queryKey: ["race_roster"] });
+      queryClient.invalidateQueries({ queryKey: ["current_phase"] });
+      queryClient.invalidateQueries({ queryKey: ["race_global"] });
+      queryClient.invalidateQueries({ queryKey: ["enrolling_race"] });
+      queryClient.invalidateQueries({ queryKey: ["side_bet_desk"] });
+      queryClient.invalidateQueries({ queryKey: ["race_history"] });
+    },
+  });
+
   return {
     execute,
     deposit,
@@ -267,5 +287,6 @@ export function useExec() {
     claimRacerNft,
     claimWager,
     adminRainOut,
+    rainOutRace,
   };
 }

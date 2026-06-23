@@ -184,6 +184,27 @@ export function shouldOpenNextRace(running, enrolling, nowSec = Date.now() / 100
   return prepClose != null && nowSec >= prepClose;
 }
 
+/** Mirrors contract `should_auto_rain_out` — permissionless early close + next race. */
+export function shouldOfferRainOut(race, roster, nowSec = Date.now() / 1000) {
+  if (!race || race.is_settled) return false;
+  const runners = race.total_runners ?? 0;
+  const entryClose = entryCloseAt(race);
+  if (runners === 0 && entryClose != null && nowSec >= entryClose) return true;
+  const revealClose = tsToSeconds(race.crowd_reveal_close);
+  if (runners > 0 && revealClose != null && nowSec >= revealClose) {
+    return !(roster ?? []).some((r) => r.revealed_action);
+  }
+  return false;
+}
+
+export function rainOutReason(race, roster, nowSec = Date.now() / 1000) {
+  if (!shouldOfferRainOut(race, roster, nowSec)) return null;
+  if ((race?.total_runners ?? 0) === 0) {
+    return "No runners entered — rain out refunds side bets and opens the next race.";
+  }
+  return "No runner hit GET SET — rain out refunds entry fees and side bets, then opens the next race.";
+}
+
 export function isCrowdCommitOpen(phase, race, config, nowSec = Date.now() / 1000) {
   if (!race || race.is_settled || !crowdPhasesEnabled(race)) return false;
   if (isCombinedPrepSchedule(race)) {
