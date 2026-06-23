@@ -51,7 +51,13 @@ export default function Home() {
           </div>
         )}
 
-        <PhaseStrip />
+        <PhaseStrip
+          onEnterRace={() => setShowEnter(true)}
+          enterDisabled={enterDisabled}
+          enterHint={enterHint}
+          showEnterCta={entryOpen && !race?.is_settled}
+          entryRaceId={entryRace?.current_race_id ?? null}
+        />
 
         {status !== "Connected" && (
           <div className="bg-gray-900 rounded-xl p-12 text-center text-gray-400 border border-gray-800 mb-4">

@@ -23,7 +23,13 @@ import { computeFirstPrize, ENTRY_POOL_SPLIT } from "@/utils/settlementPayouts";
 import UpcomingRaceEntriesToggle from "@/components/UpcomingRaceEntries";
 import { useRaceView } from "@/context/RaceViewContext";
 
-export default function PhaseStrip() {
+export default function PhaseStrip({
+  onEnterRace,
+  enterDisabled = true,
+  enterHint = null,
+  showEnterCta = false,
+  entryRaceId = null,
+}) {
   const { value: race } = useRaceGlobal();
   const { value: enrollingRaw, query: enrollingQuery } = useEnrollingRace();
   const enrolling = hasEnrollingRace(enrollingRaw) ? enrollingRaw : null;
@@ -106,6 +112,23 @@ export default function PhaseStrip() {
           <p className="mt-1.5 text-xs font-semibold uppercase tracking-widest text-carl-muted sm:text-sm">
             {subline}
           </p>
+          {showEnterCta && onEnterRace && (
+            <div className="mt-3 flex flex-col items-center gap-1.5 sm:items-start">
+              <button
+                type="button"
+                onClick={onEnterRace}
+                disabled={enterDisabled}
+                className="rounded-xl border border-carl-accent/35 bg-carl-purple px-6 py-2.5 text-sm font-black uppercase tracking-wide text-white shadow-md shadow-carl-plum/30 transition-colors hover:bg-carl-navy disabled:bg-carl-midnight disabled:text-carl-muted"
+              >
+                {entryRaceId != null && entryRaceId !== liveRaceId
+                  ? `${ACTION.enterRace} #${entryRaceId}`
+                  : ACTION.enterRace}
+              </button>
+              {enterHint && (
+                <p className="text-xs text-carl-muted text-center sm:text-left">{enterHint}</p>
+              )}
+            </div>
+          )}
           {displayKey === "crowd_reveal" && enrolling && !race.is_settled && (
             <UpcomingRaceEntriesToggle raceId={enrolling.current_race_id} />
           )}

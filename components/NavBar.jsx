@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import WalletButton from "@/components/WalletButton";
+import VaultHeaderWidget from "@/components/VaultHeaderWidget";
 import LastRaceBanner from "@/components/LastRaceBanner";
 import { META } from "@/config";
 
@@ -35,7 +36,8 @@ export default function NavBar() {
             </span>
           </div>
         </Link>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <VaultHeaderWidget />
           <WalletButton />
         </div>
       </nav>
