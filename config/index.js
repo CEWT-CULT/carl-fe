@@ -61,7 +61,7 @@ export const META = {
   logo: "/icons/logo.webp",
 };
 
-export const WALLET_CONNECT_ID = "";
+export const WALLET_CONNECT_ID = "e4fc42cadd2ec0cf4d5a196deb829c06";
 
 /** C.A.R.L on Cosmos Hub mainnet */
 export const CONTRACT = "cosmos1mnu87dgrtjtlf0zjr9kkruu0qhkhr75u6jq2rnj05pcgl6f6peqs4zet5z";

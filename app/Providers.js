@@ -1,13 +1,14 @@
 "use client";
 
+import { useMemo } from "react";
 import { ChainProvider, InterchainWalletModal } from "@interchain-kit/react";
 import { keplrWallet } from "@interchain-kit/keplr-extension";
-import { keplrMobile } from "@interchain-kit/keplr-mobile";
+import { KeplrMobile, keplrMobile } from "@interchain-kit/keplr-mobile";
 import { chain, assetList } from "chain-registry/mainnet/cosmoshub";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
 
-import { RPC, WALLET_CONNECT_ID, BASE_DENOM, GAS_PRICE } from "@/config";
+import { RPC, WALLET_CONNECT_ID, BASE_DENOM, GAS_PRICE, META } from "@/config";
 
 import "@interchain-ui/react/styles";
 
@@ -40,11 +41,25 @@ export default function Providers({ children }) {
     },
   };
 
-  const wallets = [keplrWallet];
-
-  if (WALLET_CONNECT_ID && WALLET_CONNECT_ID !== "") {
-    wallets.push(keplrMobile);
-  }
+  const wallets = useMemo(() => {
+    const list = [keplrWallet];
+    if (WALLET_CONNECT_ID) {
+      const appUrl =
+        typeof window !== "undefined" ? window.location.origin : META.url;
+      list.push(
+        new KeplrMobile(keplrMobile.info, {
+          projectId: WALLET_CONNECT_ID,
+          metadata: {
+            name: META.title,
+            description: META.description,
+            url: appUrl,
+            icons: [`${appUrl}${META.logo}`],
+          },
+        })
+      );
+    }
+    return list;
+  }, []);
 
   return (
     <ChainProvider
