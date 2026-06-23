@@ -8,7 +8,7 @@ import { hashCommitment } from "@/utils/race";
 import { saveRevealPayload } from "@/utils/revealStorage";
 import { useRaceGlobal, useEnrollingRace, useCurrentPhase, useRaceEntry } from "@/hooks";
 import { useNowSec } from "@/hooks/useNowSec";
-import { entryTargetRace, isEntryOpenForRace } from "@/utils/phases";
+import { entryTargetRace, isEntryOpenForRace, parseEnrollingRace } from "@/utils/phases";
 import { useChain } from "@/hooks/useChainClient";
 import { CHAIN_NAME, ENTRY_FEE_ATOM } from "@/config";
 import { SPECIES, getSpeciesById, getNftContracts, speciesCapsLabel } from "@/utils/species";
@@ -92,7 +92,8 @@ function SpeciesRow({ species, tokens, selected, onSelect, imageMap, loading }) 
 
 export default function EnterRaceFlow({ onClose }) {
   const { value: race, query: raceQuery } = useRaceGlobal();
-  const { value: enrolling } = useEnrollingRace();
+  const { value: enrollingRaw } = useEnrollingRace();
+  const enrolling = parseEnrollingRace(enrollingRaw);
   const { value: phase } = useCurrentPhase();
   const { address } = useChain(CHAIN_NAME);
   const nowSec = useNowSec();

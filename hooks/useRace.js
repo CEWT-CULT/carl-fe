@@ -25,10 +25,14 @@ export function useEnrollingRace() {
     queryKey: ["enrolling_race"],
     queryFn: async () => {
       const readClient = await getCosmWasmClient();
-      return readClient.queryContractSmart(CONTRACT, { enrolling_race: {} });
+      try {
+        return await readClient.queryContractSmart(CONTRACT, { enrolling_race: {} });
+      } catch {
+        return null;
+      }
     },
     enabled: !!CONTRACT,
-    refetchInterval: 1000 * 3,
+    refetchInterval: 1000 * 5,
     retry: false,
   });
   return { value: query.data ?? null, query };
@@ -147,7 +151,8 @@ export function useRaceEntry(raceId, address) {
 export function useEscrowVault(address) {
   const { getCosmWasmClient } = useChain(CHAIN_NAME);
   const { value: race } = useRaceGlobal();
-  const { value: enrolling } = useEnrollingRace();
+  const { value: enrollingRaw } = useEnrollingRace();
+  const enrolling = parseEnrollingRace(enrollingRaw);
   const { data: historyData } = useRaceHistory(50);
 
   const raceIds = useMemo(() => {

@@ -165,9 +165,21 @@ export function bettingTargetRace(running, enrolling, config, nowSec = Date.now(
   return null;
 }
 
+/** CosmWasm `enrolling_race` query — null when no pipeline race is queued. */
+export function parseEnrollingRace(data) {
+  if (!data || typeof data !== "object") return null;
+  const id = data.current_race_id;
+  if (id == null || Number(id) <= 0) return null;
+  return data;
+}
+
+export function hasEnrollingRace(enrolling) {
+  return parseEnrollingRace(enrolling) != null;
+}
+
 /** True when a permissionless `open_next_race` crank should run. */
 export function shouldOpenNextRace(running, enrolling, nowSec = Date.now() / 1000) {
-  if (!running || running.is_settled || enrolling) return false;
+  if (!running || running.is_settled || hasEnrollingRace(enrolling)) return false;
   const prepClose = entryCloseAt(running);
   return prepClose != null && nowSec >= prepClose;
 }

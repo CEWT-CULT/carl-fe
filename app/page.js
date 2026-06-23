@@ -5,7 +5,7 @@ import { useChain } from "@/hooks/useChainClient";
 import { useState } from "react";
 import { useRaceGlobal, useEnrollingRace, useCurrentPhase, useRaceEntry } from "@/hooks";
 import { useNowSec } from "@/hooks/useNowSec";
-import { entryTargetRace, isEntryOpenForRace } from "@/utils/phases";
+import { entryTargetRace, isEntryOpenForRace, parseEnrollingRace } from "@/utils/phases";
 import { ACTION } from "@/utils/raceTheme";
 import PhaseStrip from "@/components/PhaseStrip";
 import RacerRevealBanner from "@/components/RacerRevealBanner";
@@ -15,13 +15,13 @@ import VaultBar from "@/components/VaultBar";
 import EnterRaceFlow from "@/components/EnterRaceFlow";
 import BettingDesk from "@/components/BettingDesk";
 import ClaimNftCard from "@/components/ClaimNftCard";
-import OpenNextRaceCrank from "@/components/OpenNextRaceCrank";
 
 export default function Home() {
   const { status, address } = useChain(CHAIN_NAME);
   const [showEnter, setShowEnter] = useState(false);
   const { value: race } = useRaceGlobal();
-  const { value: enrolling } = useEnrollingRace();
+  const { value: enrollingRaw } = useEnrollingRace();
+  const enrolling = parseEnrollingRace(enrollingRaw);
   const { value: phase } = useCurrentPhase();
   const nowSec = useNowSec();
   const entryRace = entryTargetRace(race, enrolling, nowSec);
@@ -39,7 +39,6 @@ export default function Home() {
 
   return (
     <>
-      <OpenNextRaceCrank />
       {showEnter && <EnterRaceFlow onClose={() => setShowEnter(false)} />}
 
       <div className="w-full px-3 sm:px-5 lg:px-8 py-4 flex-1 max-w-[100rem] mx-auto">

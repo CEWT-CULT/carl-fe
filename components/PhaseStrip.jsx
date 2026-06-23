@@ -1,6 +1,9 @@
 "use client";
 
 import { useRaceGlobal, useEnrollingRace, useCurrentPhase, useConfig } from "@/hooks";
+import { useChain } from "@/hooks/useChainClient";
+import { CHAIN_NAME } from "@/config";
+import { useExec } from "@/hooks/useExec";
 import { useNowSec } from "@/hooks/useNowSec";
 import {
   nextPhaseDeadline,
@@ -9,6 +12,8 @@ import {
   resolveDisplayPhaseKey,
   entryCloseAt,
   isEntryOpenForRace,
+  shouldOpenNextRace,
+  hasEnrollingRace,
 } from "@/utils/phases";
 import { ACTION, getMarqueeCopy } from "@/utils/raceTheme";
 import { formatAtom } from "@/utils/race";
@@ -16,9 +21,12 @@ import { computeFirstPrize, ENTRY_POOL_SPLIT } from "@/utils/settlementPayouts";
 
 export default function PhaseStrip() {
   const { value: race } = useRaceGlobal();
-  const { value: enrolling } = useEnrollingRace();
+  const { value: enrollingRaw, query: enrollingQuery } = useEnrollingRace();
+  const enrolling = hasEnrollingRace(enrollingRaw) ? enrollingRaw : null;
   const { value: phase } = useCurrentPhase();
   const { value: config } = useConfig();
+  const { address } = useChain(CHAIN_NAME);
+  const { openNextRace } = useExec();
   const nowSec = useNowSec(!!race && !race?.is_settled);
 
   if (!race) {
@@ -56,6 +64,10 @@ export default function PhaseStrip() {
   const firstPrizeUatom = computeFirstPrize(entryPoolUatom);
   const showPrize = !race.is_settled;
 
+  const needsNextRaceOpen =
+    race && !race.is_settled && shouldOpenNextRace(race, enrollingRaw, nowSec);
+  const nextRaceId = (race?.current_race_id ?? 0) + 1;
+
   const timerLabel = race.is_settled
     ? "STATUS"
     : settlementReady
@@ -88,11 +100,34 @@ export default function PhaseStrip() {
           {enrolling && !race.is_settled && (
             <p className="mt-2 text-xs font-semibold text-amber-200/90">
               {isEntryOpenForRace(enrolling, nowSec)
-                ? `Race #${enrolling.current_race_id} open for entry & bets`
-                : `Race #${enrolling.current_race_id} opens when prep starts`}
+                ? `Race #${enrolling.current_race_id} — enter & bet while race #${raceId} plays out`
+                : `Race #${enrolling.current_race_id} signup queued`}
             </p>
           )}
-          {!enrolling && !race.is_settled && entryCloseAt(race) != null && nowSec < entryCloseAt(race) && (
+          {needsNextRaceOpen && (
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+              <p className="text-xs text-carl-muted">
+                Race #{nextRaceId} signup is not open yet on-chain.
+              </p>
+              {address ? (
+                <button
+                  type="button"
+                  disabled={openNextRace.isPending}
+                  onClick={() =>
+                    openNextRace.mutate(undefined, {
+                      onSuccess: () => enrollingQuery.refetch(),
+                    })
+                  }
+                  className="rounded-lg border border-amber-500/50 bg-amber-950/40 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-amber-100 hover:bg-amber-900/50 disabled:opacity-50"
+                >
+                  {openNextRace.isPending ? "Opening…" : `Open race #${nextRaceId}`}
+                </button>
+              ) : (
+                <p className="text-xs text-carl-muted">Connect wallet to open signup.</p>
+              )}
+            </div>
+          )}
+          {!enrolling && !needsNextRaceOpen && !race.is_settled && entryCloseAt(race) != null && nowSec < entryCloseAt(race) && (
             <p className="mt-2 text-xs text-carl-muted">
               Next race opens when prep closes for race #{raceId}
             </p>

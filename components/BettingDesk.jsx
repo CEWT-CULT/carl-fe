@@ -18,7 +18,7 @@ import { CHAIN_NAME } from "@/config";
 import { SPECIES, UNDERDOG_BET, speciesKey, speciesCapsLabel } from "@/utils/species";
 import { betTypeLabel, betTypeKey, dominantBetType, isOneSidedDesk, summarizeSideBetDesk, normalizePick } from "@/utils/sideBets";
 import { formatAtom, shortRunnerName } from "@/utils/race";
-import { isBettingOpen, phaseKey, bettingTargetRace, isEntryOpenForRace } from "@/utils/phases";
+import { isBettingOpen, phaseKey, bettingTargetRace, isEntryOpenForRace, parseEnrollingRace } from "@/utils/phases";
 import { useSideBetAmount } from "@/hooks/useSideBetAmount";
 import SideBetAmountField from "@/components/SideBetAmountField";
 import { useNowSec } from "@/hooks/useNowSec";
@@ -55,7 +55,8 @@ function betSelectionValue(betType, racerPick) {
 export default function BettingDesk({ connected = true }) {
   const { address } = useChain(CHAIN_NAME);
   const { value: race, query: raceQuery } = useRaceGlobal();
-  const { value: enrolling } = useEnrollingRace();
+  const { value: enrollingRaw } = useEnrollingRace();
+  const enrolling = parseEnrollingRace(enrollingRaw);
   const { value: config } = useConfig();
   const { value: phase } = useCurrentPhase();
   const nowSec = useNowSec();
