@@ -70,7 +70,7 @@ export default function CrowdEntropyCard() {
 
   return (
     <div className="bg-gray-800 p-6 rounded-lg space-y-4">
-      <h2 className="text-xl font-bold text-gray-100">{ACTION.cheer} — Crowd Entropy</h2>
+      <h2 className="text-xl font-bold text-gray-100">{ACTION.cheerTitle}</h2>
       <p className="text-gray-500 text-sm">
         Side bettors commit a blind salt after entry closes. {ACTION.cheer} mixes into the race seed at
         settlement — crowd commits share 2% of the total pool when the race settles.

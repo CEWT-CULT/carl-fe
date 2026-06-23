@@ -6,6 +6,7 @@ export const ACTION = {
   set: "GET SET",
   setPending: "Getting SET…",
   cheer: "GET HYPED",
+  cheerTitle: "GET HYPED — Add some extra randomness to the race to earn part of the pool",
   cheerPending: "Getting HYPED…",
   go: "GO!",
   finalResults: "Final results",

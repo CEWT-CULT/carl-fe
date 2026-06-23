@@ -38,7 +38,7 @@ import {
 import { ACTION } from "@/utils/raceTheme";
 import { useNowSec } from "@/hooks/useNowSec";
 
-function Segment({ label, status, active, children }) {
+function Segment({ label, status, active, children, multilineLabel = false }) {
   return (
     <div
       className={`flex-1 min-w-[9rem] rounded-lg border px-2.5 py-2 flex flex-col gap-1.5 ${
@@ -47,10 +47,20 @@ function Segment({ label, status, active, children }) {
           : "border-gray-600/45 bg-carl-midnight/35"
       }`}
     >
-      <div className="flex items-center justify-between gap-2 min-h-[1.125rem]">
-        <span className="text-[11px] font-bold uppercase tracking-wide text-white">{label}</span>
+      <div className={`flex gap-2 min-h-[1.125rem] ${multilineLabel ? "flex-col items-start" : "items-center justify-between"}`}>
+        <span
+          className={`text-[11px] font-bold tracking-wide text-white ${
+            multilineLabel ? "normal-case leading-snug" : "uppercase"
+          }`}
+        >
+          {label}
+        </span>
         {status && (
-          <span className="text-[10px] text-gray-400 truncate text-right max-w-[55%]">{status}</span>
+          <span
+            className={`text-[10px] text-gray-400 ${multilineLabel ? "" : "truncate text-right max-w-[55%]"}`}
+          >
+            {status}
+          </span>
         )}
       </div>
       {children}
@@ -412,7 +422,12 @@ export default function RaceActionsBar({
     <section className={sectionClass} aria-label={ariaLabel}>
       <div className="flex flex-wrap items-stretch gap-2">
         {showCheer && (
-          <Segment label={ACTION.cheer} status={crowdStatus()} active={cheerActive}>
+          <Segment
+            label={ACTION.cheerTitle}
+            multilineLabel
+            status={crowdStatus()}
+            active={cheerActive}
+          >
             {renderCheerAction()}
           </Segment>
         )}
