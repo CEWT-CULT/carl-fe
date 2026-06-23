@@ -33,6 +33,8 @@ export default function PhaseStrip() {
   const { openNextRace, rainOutRace } = useExec();
   const { showUpcoming } = useRaceView();
   const nowSec = useNowSec(!!race && !race?.is_settled);
+  const raceId = race?.current_race_id ?? null;
+  const { value: roster } = useRaceRoster(raceId);
 
   if (!race) {
     return (
@@ -44,7 +46,7 @@ export default function PhaseStrip() {
     );
   }
 
-  const raceId = race.current_race_id ?? 0;
+  const liveRaceId = race.current_race_id ?? 0;
   const displayKey =
     race.total_runners === 0 && config?.test_mode
       ? "idle"
@@ -52,7 +54,7 @@ export default function PhaseStrip() {
   const settlementReady = isSettlementOpen(race, nowSec);
 
   const { headline, subline } = getMarqueeCopy({
-    raceId,
+    raceId: liveRaceId,
     phaseKey: settlementReady ? "settlement" : displayKey ?? "entry",
     settlementReady,
   });
@@ -71,8 +73,7 @@ export default function PhaseStrip() {
 
   const needsNextRaceOpen =
     race && !race.is_settled && shouldOpenNextRace(race, enrollingRaw, nowSec);
-  const nextRaceId = (race?.current_race_id ?? 0) + 1;
-  const { value: roster } = useRaceRoster(raceId);
+  const nextRaceId = liveRaceId + 1;
   const rainOutReady = shouldOfferRainOut(race, roster, nowSec);
   const rainOutMessage = rainOutReason(race, roster, nowSec);
 
@@ -111,7 +112,7 @@ export default function PhaseStrip() {
           {enrolling && !race.is_settled && !showUpcoming && (
             <p className="mt-2 text-xs font-semibold text-amber-200/90">
               {isEntryOpenForRace(enrolling, nowSec)
-                ? `Race #${enrolling.current_race_id} — enter & bet while race #${raceId} plays out`
+                ? `Race #${enrolling.current_race_id} — enter & bet while race #${liveRaceId} plays out`
                 : `Race #${enrolling.current_race_id} signup queued`}
             </p>
           )}
@@ -163,7 +164,7 @@ export default function PhaseStrip() {
           )}
           {!enrolling && !needsNextRaceOpen && !race.is_settled && entryCloseAt(race) != null && nowSec < entryCloseAt(race) && (
             <p className="mt-2 text-xs text-carl-muted">
-              Next race opens when prep closes for race #{raceId}
+              Next race opens when prep closes for race #{liveRaceId}
             </p>
           )}
         </div>
