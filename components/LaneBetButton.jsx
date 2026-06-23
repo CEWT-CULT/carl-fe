@@ -5,14 +5,13 @@ import { createPortal } from "react-dom";
 import { useExec } from "@/hooks/useExec";
 import {
   useRaceGlobal,
-  useEnrollingRace,
   useSideBet,
   useUser,
   useConfig,
 } from "@/hooks";
 import { useChain } from "@/hooks/useChainClient";
 import { CHAIN_NAME } from "@/config";
-import { isBettingOpen, bettingTargetRace } from "@/utils/phases";
+import { isBettingOpen } from "@/utils/phases";
 import { useNowSec } from "@/hooks/useNowSec";
 import { formatAtom, shortRunnerName } from "@/utils/race";
 import { speciesKey } from "@/utils/species";
@@ -74,15 +73,10 @@ function usePopoverPosition(open, anchorRef, popoverRef) {
 export default function LaneBetButton({ runner }) {
   const { address } = useChain(CHAIN_NAME);
   const { value: race } = useRaceGlobal();
-  const { value: enrolling } = useEnrollingRace();
   const { value: config } = useConfig();
   const nowSec = useNowSec();
-  const deskRace = bettingTargetRace(race, enrolling, config, nowSec);
-  const trackRaceId = race?.current_race_id ?? 0;
-  const deskRaceId = deskRace?.current_race_id ?? 0;
-  const bettingOpen =
-    deskRaceId === trackRaceId && deskRace ? isBettingOpen(deskRace, config, nowSec) : false;
-  const raceId = deskRaceId;
+  const raceId = race?.current_race_id ?? 0;
+  const bettingOpen = race ? isBettingOpen(race, config, nowSec) : false;
 
   const { value: myBet } = useSideBet(raceId, address);
   const { value: user } = useUser(address);

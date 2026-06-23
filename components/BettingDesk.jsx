@@ -16,7 +16,7 @@ import {
 import { useChain } from "@/hooks/useChainClient";
 import { CHAIN_NAME } from "@/config";
 import { SPECIES, UNDERDOG_BET, speciesKey, speciesCapsLabel } from "@/utils/species";
-import { betTypeLabel, betTypeKey, dominantBetType, isOneSidedDesk, summarizeSideBetDesk } from "@/utils/sideBets";
+import { betTypeLabel, betTypeKey, dominantBetType, isOneSidedDesk, summarizeSideBetDesk, normalizePick } from "@/utils/sideBets";
 import { formatAtom, shortRunnerName } from "@/utils/race";
 import { isBettingOpen, phaseKey, bettingTargetRace, isEntryOpenForRace } from "@/utils/phases";
 import { useSideBetAmount } from "@/hooks/useSideBetAmount";
@@ -62,7 +62,8 @@ export default function BettingDesk({ connected = true }) {
   const deskRace = bettingTargetRace(race, enrolling, config, nowSec);
   const deskRaceId = deskRace?.current_race_id ?? 0;
   const liveRaceId = race?.current_race_id ?? 0;
-  const pipelineDesk = enrolling && deskRaceId === enrolling.current_race_id;
+  const pipelineDesk =
+    enrolling && deskRaceId === enrolling.current_race_id && liveRaceId !== deskRaceId;
   const bettingOpen = deskRace ? isBettingOpen(deskRace, config, nowSec) : false;
   const phaseKeyVal = phaseKey(phase);
   const deskEntryOpen = deskRace ? isEntryOpenForRace(deskRace, nowSec) : false;
@@ -274,7 +275,7 @@ export default function BettingDesk({ connected = true }) {
           <p className="text-sm text-carl-muted mt-1">
             <strong>
               {betTypeLabel(myBet.bet_type, {
-                pick: myBet.pick,
+                pick: normalizePick(myBet.pick),
                 ...betLabelOpts,
               })}
             </strong> · {formatAtom(myBet.amount)} ATOM
@@ -411,7 +412,7 @@ export default function BettingDesk({ connected = true }) {
           <ul className="flex flex-wrap gap-2">
             {desk.bets.map((b) => {
               const isRacer = betTypeKey(b.bet_type) === "racer_victory";
-              const label = betTypeLabel(b.bet_type, { pick: b.pick, ...betLabelOpts });
+              const label = betTypeLabel(b.bet_type, { pick: normalizePick(b.pick), ...betLabelOpts });
               const who = b.bettor === address ? "You" : `${b.bettor.slice(0, 10)}…`;
               return (
                 <li

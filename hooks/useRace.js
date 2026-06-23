@@ -29,6 +29,7 @@ export function useEnrollingRace() {
     },
     enabled: !!CONTRACT,
     refetchInterval: 1000 * 3,
+    retry: false,
   });
   return { value: query.data ?? null, query };
 }

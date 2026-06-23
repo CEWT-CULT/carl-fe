@@ -1,5 +1,12 @@
 import { SPECIES, speciesCapsLabel, speciesKey } from "@/utils/species";
 
+/** CosmWasm Addr JSON may be a plain string or `{ address }`. */
+export function normalizePick(pick) {
+  if (!pick) return null;
+  if (typeof pick === "string") return pick;
+  return pick.address ?? pick.addr ?? null;
+}
+
 /** Extract snake_case bet type key from CosmWasm JSON enum. */
 export function betTypeKey(betType) {
   if (!betType) return null;
@@ -47,8 +54,9 @@ BET_TYPE_LABELS.underdog_wins = "UNDERDOG";
 BET_TYPE_LABELS.racer_victory = "RACER";
 
 export function racerBetLabel(pick, rosterByPlayer, collectionNames = {}) {
-  if (!pick) return "RACER";
-  const runner = rosterByPlayer?.[pick];
+  const addr = normalizePick(pick);
+  if (!addr) return "RACER";
+  const runner = rosterByPlayer?.[addr];
   if (runner) {
     const id = runner.nft_id != null ? `#${runner.nft_id}` : "";
     const contract = runner.nft_contract;
@@ -56,7 +64,7 @@ export function racerBetLabel(pick, rosterByPlayer, collectionNames = {}) {
       (contract && collectionNames[contract]) || speciesCapsLabel(speciesKey(runner));
     return `${id} ${collection}`.trim();
   }
-  return `${pick.slice(0, 10)}…`;
+  return `${addr.slice(0, 10)}…`;
 }
 
 export function betTypeLabel(betType, { pick, rosterByPlayer, collectionNames } = {}) {
@@ -107,9 +115,10 @@ export function summarizeSideBetDesk(desk) {
 
     if (key === "racer_victory") {
       racerBets += 1;
-      if (bet.pick) {
-        const cur = byPick.get(bet.pick) ?? { count: 0, amount: 0 };
-        byPick.set(bet.pick, { count: cur.count + 1, amount: cur.amount + amt });
+      const pick = normalizePick(bet.pick);
+      if (pick) {
+        const cur = byPick.get(pick) ?? { count: 0, amount: 0 };
+        byPick.set(pick, { count: cur.count + 1, amount: cur.amount + amt });
       }
     } else if (key === "underdog_wins") {
       underdogBets += 1;

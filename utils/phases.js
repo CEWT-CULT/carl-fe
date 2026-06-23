@@ -154,10 +154,14 @@ export function entryTargetRace(running, enrolling, nowSec = Date.now() / 1000) 
   return null;
 }
 
-/** Race accepting side bets — enrolling desk when pipeline is live. */
+/** Race accepting side bets — live race first, then pipeline enrolling. */
 export function bettingTargetRace(running, enrolling, config, nowSec = Date.now() / 1000) {
-  if (enrolling && isBettingOpen(enrolling, config, nowSec)) return enrolling;
-  if (running && isBettingOpen(running, config, nowSec)) return running;
+  if (running && !running.is_settled && isBettingOpen(running, config, nowSec)) {
+    return running;
+  }
+  if (enrolling && isBettingOpen(enrolling, config, nowSec)) {
+    return enrolling;
+  }
   return null;
 }
 
