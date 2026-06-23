@@ -15,7 +15,7 @@ import {
 import { useChain } from "@/hooks/useChainClient";
 import { CHAIN_NAME } from "@/config";
 import { hashCrowdSalt } from "@/utils/race";
-import { loadRevealPayload } from "@/utils/revealStorage";
+import { loadRevealPayload, saveRevealPayload } from "@/utils/revealStorage";
 import { loadCrowdPayload, saveCrowdPayload } from "@/utils/crowdStorage";
 import {
   isRevealOpen,
@@ -123,7 +123,8 @@ export default function RaceActionsBar({
   const connected = status === "Connected";
   const revealOpen = isRevealOpen(phase, race, config, nowSec);
   const alreadyRevealed = !!raceEntry?.revealed_action;
-  const hasCommittedSalt = !!runnerSalt;
+  const hasCommittedSalt = !!runnerSalt.trim();
+  const inRace = !!raceEntry;
   const settlementOpen = isSettlementOpen(race, nowSec);
   const raceLive = isRaceLive(race, nowSec);
   const liveWindowSec =
@@ -138,7 +139,6 @@ export default function RaceActionsBar({
   const crowdRevealOpen = isCrowdRevealOpen(phase, race, config, nowSec);
   const setOpensIn = secondsUntilRevealOpen(race, config, nowSec);
   const setClosesIn = secondsUntilRevealClose(race, nowSec);
-  const inRace = !!raceEntry || hasCommittedSalt;
 
   const displayKey =
     race?.total_runners === 0 && config?.test_mode
@@ -197,6 +197,7 @@ export default function RaceActionsBar({
     if (revealRace.isPending) return ACTION.setPending;
     if (alreadyRevealed) return "Confirmed";
     if (!inRace) return "Not entered";
+    if (!hasCommittedSalt) return "Enter salt";
     if (!revealOpen) {
       if (setOpensIn != null && setOpensIn > 0) {
         return `${ACTION.set} in ${formatCountdownClock(setOpensIn)}`;
@@ -254,14 +255,59 @@ export default function RaceActionsBar({
     if (alreadyRevealed) {
       return <p className="text-[10px] text-carl-accent font-medium py-1">Done</p>;
     }
+    if (inRace && !hasCommittedSalt) {
+      return (
+        <div className="flex flex-col gap-1.5">
+          <p className="text-[10px] leading-snug text-amber-300/90">
+            Paste the secret salt saved when you entered — GET SET hashes tactic + salt on-chain.
+          </p>
+          <select
+            value={action}
+            onChange={(e) => setAction(e.target.value)}
+            className="w-full rounded-md border border-gray-600 bg-gray-950 px-2 py-1 text-[11px] text-white"
+          >
+            <option value="saboteur">Saboteur</option>
+            <option value="cheerleader">Cheerleader</option>
+            <option value="wildcard">Wildcard</option>
+          </select>
+          <input
+            type="text"
+            value={runnerSalt}
+            onChange={(e) => setRunnerSalt(e.target.value)}
+            placeholder="Entry salt (from same browser/device)"
+            className="w-full rounded-md border border-gray-600 bg-gray-950 px-2 py-1 text-[11px] text-white placeholder:text-gray-500"
+          />
+          <Btn variant="primary" compact disabled>
+            {ACTION.set} locked until salt is set
+          </Btn>
+        </div>
+      );
+    }
     return (
       <Btn
         variant="primary"
         compact
         disabled={
-          !revealOpen || !inRace || alreadyRevealed || revealRace.isPending || raceEntryQuery.isLoading
+          !revealOpen ||
+          !inRace ||
+          !hasCommittedSalt ||
+          alreadyRevealed ||
+          revealRace.isPending ||
+          raceEntryQuery.isLoading
         }
-        onClick={() => revealRace.mutate({ action, salt: runnerSalt }, { onSuccess: refetch })}
+        onClick={() =>
+          revealRace.mutate(
+            { action, salt: runnerSalt.trim() },
+            {
+              onSuccess: () => {
+                if (address && raceId) {
+                  saveRevealPayload({ raceId, address, salt: runnerSalt.trim(), action });
+                }
+                refetch();
+              },
+            }
+          )
+        }
       >
         {setButtonLabel()}
       </Btn>
