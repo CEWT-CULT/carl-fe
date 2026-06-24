@@ -1,5 +1,10 @@
 const IPFS_GATEWAY = "https://ipfs.io/ipfs/";
 
+/** Original CEWT collection — token_uri points at IPFS folder entry without .json suffix. */
+export const CEWT_COLLECTION =
+  "cosmos1csxzghvvln5kz9spz7yrqr5rw56mw9pkze56s5v79rk48kwnqwnqeac50s";
+export const CEWT_METADATA_CID = "bafybeifix5gy3zkvvs6ppjlcmsz5gxtx6cvtqkhdnbfhnu6hsv6oheumlm";
+
 /** Turn ipfs://, ar://, and relative paths into browser-fetchable URLs. */
 export function resolveMediaUri(uri, baseUrl) {
   if (!uri) return null;
@@ -28,6 +33,49 @@ function imageFromExtension(extension) {
   return extension.image ?? extension.metadata?.image ?? null;
 }
 
+function imageFromMetadata(meta) {
+  if (!meta || typeof meta !== "object") return null;
+  const direct = meta.image ?? meta.animation_url;
+  if (direct) return direct;
+  const file = meta.properties?.files?.[0]?.uri;
+  return file ?? null;
+}
+
+/** Candidate URLs for off-chain metadata JSON (CEWT omits .json on token_uri). */
+export function metadataJsonUrls(tokenUri) {
+  const resolved = resolveMediaUri(tokenUri);
+  if (!resolved) return [];
+
+  const urls = [resolved];
+  if (!/\.json(\?|#|$)/i.test(resolved)) {
+    urls.push(`${resolved}.json`);
+  }
+  return urls;
+}
+
+/** Fetch OpenSea-style metadata JSON from token_uri. */
+export async function fetchMetadataJson(tokenUri) {
+  for (const url of metadataJsonUrls(tokenUri)) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) continue;
+
+      const contentType = res.headers.get("content-type") ?? "";
+      if (contentType.includes("application/json") || /\.json(\?|#|$)/i.test(url)) {
+        return await res.json();
+      }
+
+      const text = await res.text();
+      if (text.trimStart().startsWith("{")) {
+        return JSON.parse(text);
+      }
+    } catch {
+      // try next candidate
+    }
+  }
+  return null;
+}
+
 async function queryNftInfo(readClient, contract, tokenId) {
   const id = String(tokenId);
   try {
@@ -45,6 +93,10 @@ function normalizeNftInfo(raw) {
   return raw;
 }
 
+function cewtMetadataUri(tokenId) {
+  return `ipfs://${CEWT_METADATA_CID}/${String(tokenId)}`;
+}
+
 /** Resolve a runner's display image URL from CW721 + metadata JSON. */
 export async function fetchNftImageUrl(readClient, contract, tokenId) {
   if (!contract || tokenId == null) return null;
@@ -57,18 +109,16 @@ export async function fetchNftImageUrl(readClient, contract, tokenId) {
     const extImage = imageFromExtension(info.extension);
     if (extImage) return resolveMediaUri(extImage);
 
-    const tokenUri = info.token_uri;
+    const tokenUri =
+      info.token_uri ||
+      (contract === CEWT_COLLECTION ? cewtMetadataUri(tokenId) : null);
     if (!tokenUri) return null;
 
-    const metaUrl = resolveMediaUri(tokenUri);
-    if (!metaUrl) return null;
+    const meta = await fetchMetadataJson(tokenUri);
+    const image = imageFromMetadata(meta);
+    if (!image) return null;
 
-    const res = await fetch(metaUrl);
-    if (!res.ok) return null;
-
-    const meta = await res.json();
-    const image = meta.image ?? meta.animation_url;
-    return resolveMediaUri(image, metaUrl);
+    return resolveMediaUri(image, resolveMediaUri(tokenUri));
   } catch {
     return null;
   }

@@ -6,7 +6,7 @@ import { CHAIN_NAME, CONTRACT, BASE_DENOM, ENTRY_FEE_UATOM } from "@/config";
 import { toUtf8 } from "@interchainjs/encoding";
 import { executeContract } from "interchainjs/cosmwasm/wasm/v1/tx.rpc.func";
 import toast from "react-hot-toast";
-import { assertTxSuccess } from "@/utils/tx";
+import { assertTxSuccess, parseContractError } from "@/utils/tx";
 import { buildEnterRaceMsg } from "@/utils/race";
 import { ACTION } from "@/utils/raceTheme";
 
@@ -20,6 +20,9 @@ export function useNftRaceActions() {
     queryClient.invalidateQueries({ queryKey: ["race_roster"] });
     queryClient.invalidateQueries({ queryKey: ["side_bet_desk"] });
     queryClient.invalidateQueries({ queryKey: ["crowd_entropy_desk"] });
+    queryClient.invalidateQueries({ queryKey: ["race_entry"] });
+    queryClient.invalidateQueries({ queryKey: ["user"] });
+    queryClient.invalidateQueries({ queryKey: ["escrow_vault"] });
   };
 
   const queryTokens = async (nftContract) => {
@@ -53,28 +56,31 @@ export function useNftRaceActions() {
         },
       };
 
-      const result = await executeContract(
-        signingClient,
-        address,
+      return toast.promise(
+        (async () => {
+          const result = await executeContract(
+            signingClient,
+            address,
+            {
+              sender: address,
+              contract: nftContract,
+              msg: toUtf8(JSON.stringify(msg)),
+              funds,
+            },
+            "auto",
+            ""
+          );
+          return assertTxSuccess(result);
+        })(),
         {
-          sender: address,
-          contract: nftContract,
-          msg: toUtf8(JSON.stringify(msg)),
-          funds,
-        },
-        "auto",
-        ""
+          loading: `${ACTION.readyPending} confirming on-chain`,
+          success: `${ACTION.ready} confirmed on-chain`,
+          error: (err) => parseContractError(err?.message) || "Race entry failed",
+        }
       );
-
-      return assertTxSuccess(result);
     },
     onSuccess: () => {
       invalidateRaceQueries();
-      queryClient.invalidateQueries({ queryKey: ["escrow_vault"] });
-      toast.success(`${ACTION.ready}!`);
-    },
-    onError: (err) => {
-      toast.error(err?.message?.slice(0, 120) || "Race entry failed");
     },
   });
 

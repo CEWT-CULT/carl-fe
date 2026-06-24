@@ -37,7 +37,7 @@ export function useExec() {
       fee,
       ""
     );
-    return assertTxSuccess(result);
+    return await assertTxSuccess(result);
   };
 
   const toastExec = (promise, messages) =>
@@ -51,8 +51,8 @@ export function useExec() {
       const msg = { deposit: {} };
       const funds = [{ denom: BASE_DENOM, amount: Math.floor(amount * 1_000_000).toString() }];
       return toastExec(execute(msg, funds), {
-        loading: "Depositing to vault...",
-        success: "Vault deposit successful",
+        loading: "Depositing to vault… confirming on-chain",
+        success: "Vault deposit confirmed on-chain",
         error: "Deposit failed",
       });
     },
@@ -63,8 +63,8 @@ export function useExec() {
     mutationFn: async ({ amount }) => {
       const msg = { withdraw: { amount: Math.floor(amount * 1_000_000).toString() } };
       return toastExec(execute(msg), {
-        loading: "Withdrawing from vault...",
-        success: "Withdrawal successful",
+        loading: "Withdrawing from vault… confirming on-chain",
+        success: "Withdrawal confirmed on-chain",
         error: "Withdrawal failed",
       });
     },
@@ -81,8 +81,8 @@ export function useExec() {
         },
       };
       return toastExec(execute(msg), {
-        loading: "Placing bet...",
-        success: "Bet placed from vault",
+        loading: "Placing bet… confirming on-chain",
+        success: "Bet confirmed on-chain",
         error: "Bet failed",
       });
     },
