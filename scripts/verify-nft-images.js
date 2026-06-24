@@ -33,7 +33,7 @@ async function main() {
   const cases = [
     ["Cabal #588 (nft_info)", CABAL_COLLECTION, "588", true],
     ["Cabal #82 (nft_info)", CABAL_COLLECTION, "82", true],
-    ["Cabal #624 (nft_info — image field empty on-chain)", CABAL_COLLECTION, "624", false],
+    ["Cabal #624 (nft_info)", CABAL_COLLECTION, "624", true],
     ["CEWT #1146 (metadata JSON)", CEWT_COLLECTION, "1146", true],
     ["Memorial #37 (nft_info)", MEMORIAL_NFT, "37", true],
   ];
