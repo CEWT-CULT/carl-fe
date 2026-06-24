@@ -12,10 +12,15 @@ const MODE_BTN =
 const MODE_ACTIVE = "bg-carl-accent text-white";
 const MODE_IDLE = "bg-carl-midnight/60 text-carl-muted hover:text-carl-text";
 
-export default function VaultManagePanel({ showBalances = true, className = "" }) {
+export default function VaultManagePanel({
+  showBalances = true,
+  className = "",
+  initialAmount,
+  defaultMode = "deposit",
+}) {
   const { address } = useChain(CHAIN_NAME);
-  const [amount, setAmount] = useState("0.1");
-  const [mode, setMode] = useState("deposit");
+  const [amount, setAmount] = useState(initialAmount ?? "0.1");
+  const [mode, setMode] = useState(defaultMode);
   const { value: balance, query: balanceQuery } = useUserBalance(BASE_DENOM, address);
   const { value: user, query: userQuery } = useUser(address);
   const { deposit, withdraw } = useExec();

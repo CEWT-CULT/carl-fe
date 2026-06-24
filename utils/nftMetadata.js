@@ -1,8 +1,14 @@
 const IPFS_GATEWAY = "https://ipfs.io/ipfs/";
 
-/** Original CEWT collection — token_uri points at IPFS folder entry without .json suffix. */
+/** Memorial NEWTs — resolve via nft_info query. */
+export const MEMORIAL_NFT =
+  "cosmos1wvda3px69m7hthllx7tkwcraud8waahjk6y2wt2r62fv926nj9eqm99a5g";
+/** Original CEWT collection — token_uri → IPFS metadata JSON → png/jpeg image. */
 export const CEWT_COLLECTION =
   "cosmos1csxzghvvln5kz9spz7yrqr5rw56mw9pkze56s5v79rk48kwnqwnqeac50s";
+/** CEWT Cult Cabal — resolve via nft_info query (direct IPFS image on response). */
+export const CABAL_COLLECTION =
+  "cosmos14czxvxfr4qrd2m944tfef88gr87dn857ygcq06xsqpj492jgwtfq29ngtz";
 export const CEWT_METADATA_CID = "bafybeifix5gy3zkvvs6ppjlcmsz5gxtx6cvtqkhdnbfhnu6hsv6oheumlm";
 
 /** Turn ipfs://, ar://, and relative paths into browser-fetchable URLs. */
@@ -26,11 +32,6 @@ export function resolveMediaUri(uri, baseUrl) {
     }
   }
   return uri;
-}
-
-function imageFromExtension(extension) {
-  if (!extension || typeof extension !== "object") return null;
-  return extension.image ?? extension.metadata?.image ?? null;
 }
 
 function imageFromMetadata(meta) {
@@ -76,25 +77,50 @@ export async function fetchMetadataJson(tokenUri) {
   return null;
 }
 
-async function queryNftInfo(readClient, contract, tokenId) {
-  const id = String(tokenId);
-  try {
-    return await readClient.queryContractSmart(contract, { nft_info: { token_id: id } });
-  } catch {
-    return await readClient.queryContractSmart(contract, {
-      all_nft_info: { token_id: id },
-    });
-  }
-}
-
-function normalizeNftInfo(raw) {
-  if (!raw) return null;
-  if (raw.info) return raw.info;
-  return raw;
+/** CW721 nft_info query — Cabal + Memorial use this exclusively. */
+export async function queryNftInfo(readClient, contract, tokenId) {
+  return readClient.queryContractSmart(contract, {
+    nft_info: { token_id: String(tokenId) },
+  });
 }
 
 function cewtMetadataUri(tokenId) {
   return `ipfs://${CEWT_METADATA_CID}/${String(tokenId)}`;
+}
+
+async function imageFromTokenUri(tokenUri) {
+  const meta = await fetchMetadataJson(tokenUri);
+  const image = imageFromMetadata(meta);
+  if (image) return resolveMediaUri(image, resolveMediaUri(tokenUri));
+  return null;
+}
+
+/**
+ * Read image URI from an nft_info query response.
+ * CW721 metadata-onchain stores the IPFS image on response.extension.image.
+ */
+export function imageFromNftInfoResponse(nftInfo) {
+  if (!nftInfo || typeof nftInfo !== "object") return null;
+
+  const topLevel = nftInfo.image;
+  if (typeof topLevel === "string" && topLevel.trim()) {
+    return resolveMediaUri(topLevel);
+  }
+
+  const ext = nftInfo.extension;
+  if (ext && typeof ext === "object") {
+    const extImage = ext.image;
+    if (typeof extImage === "string" && extImage.trim()) {
+      return resolveMediaUri(extImage);
+    }
+  }
+
+  const tokenUri = nftInfo.token_uri;
+  if (typeof tokenUri === "string" && tokenUri.trim()) {
+    return resolveMediaUri(tokenUri);
+  }
+
+  return null;
 }
 
 /** Resolve a runner's display image URL from CW721 + metadata JSON. */
@@ -102,23 +128,30 @@ export async function fetchNftImageUrl(readClient, contract, tokenId) {
   if (!contract || tokenId == null) return null;
 
   try {
-    const raw = await queryNftInfo(readClient, contract, tokenId);
-    const info = normalizeNftInfo(raw);
-    if (!info) return null;
+    // Memorial + Cabal: nft_info only — IPFS image lives on the query response.
+    if (contract === MEMORIAL_NFT || contract === CABAL_COLLECTION) {
+      const nftInfo = await queryNftInfo(readClient, contract, tokenId);
+      return imageFromNftInfoResponse(nftInfo);
+    }
 
-    const extImage = imageFromExtension(info.extension);
-    if (extImage) return resolveMediaUri(extImage);
+    // Original CEWT collection — off-chain metadata JSON via token_uri.
+    let nftInfo = null;
+    try {
+      nftInfo = await queryNftInfo(readClient, contract, tokenId);
+    } catch {
+      const all = await readClient.queryContractSmart(contract, {
+        all_nft_info: { token_id: String(tokenId) },
+      });
+      nftInfo = all?.info ?? null;
+    }
 
-    const tokenUri =
-      info.token_uri ||
-      (contract === CEWT_COLLECTION ? cewtMetadataUri(tokenId) : null);
-    if (!tokenUri) return null;
+    if (!nftInfo) return null;
 
-    const meta = await fetchMetadataJson(tokenUri);
-    const image = imageFromMetadata(meta);
-    if (!image) return null;
+    const fromNftInfo = imageFromNftInfoResponse(nftInfo);
+    if (fromNftInfo) return fromNftInfo;
 
-    return resolveMediaUri(image, resolveMediaUri(tokenUri));
+    const tokenUri = nftInfo.token_uri || cewtMetadataUri(tokenId);
+    return await imageFromTokenUri(tokenUri);
   } catch {
     return null;
   }

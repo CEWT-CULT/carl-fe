@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useChain } from "@/hooks/useChainClient";
-import { CHAIN_NAME, CONTRACT, BASE_DENOM, ENTRY_FEE_UATOM } from "@/config";
+import { CHAIN_NAME, CONTRACT, ENTRY_FEE_UATOM } from "@/config";
 import { toUtf8 } from "@interchainjs/encoding";
 import { executeContract } from "interchainjs/cosmwasm/wasm/v1/tx.rpc.func";
 import toast from "react-hot-toast";
@@ -38,15 +38,17 @@ export function useNftRaceActions() {
   };
 
   const enterRace = useMutation({
-    mutationFn: async ({ nftContract, tokenId, commitmentB64, payFromVault }) => {
+    mutationFn: async ({ nftContract, tokenId, commitmentB64 }) => {
       const signingClient = await getSigningCosmWasmClient();
       const readClient = await getCosmWasmClient();
-      const config = await readClient.queryContractSmart(CONTRACT, { config: {} });
-      const entryFeeUatom = config?.entry_fee || ENTRY_FEE_UATOM;
+      const user = await readClient.queryContractSmart(CONTRACT, { user: { addr: address } });
+      const deposits = Number(user?.deposits ?? 0);
+      if (deposits < Number(ENTRY_FEE_UATOM)) {
+        throw new Error("Not enough ATOM in your vault — deposit first.");
+      }
+
       const innerMsg = buildEnterRaceMsg(commitmentB64);
-      const funds = payFromVault
-        ? []
-        : [{ denom: BASE_DENOM, amount: entryFeeUatom }];
+      const funds = [];
 
       const msg = {
         send_nft: {

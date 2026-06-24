@@ -4,9 +4,11 @@ import { useState, useEffect } from "react";
 import { useNftRaceActions } from "@/hooks/useNftRaceActions";
 import { hashCommitment } from "@/utils/race";
 import { saveRevealPayload } from "@/utils/revealStorage";
-import { useRaceGlobal, useCurrentPhase } from "@/hooks";
+import { useRaceGlobal, useCurrentPhase, useUser } from "@/hooks";
 import { useChain } from "@/hooks/useChainClient";
-import { CHAIN_NAME, ENTRY_FEE_ATOM } from "@/config";
+import { CHAIN_NAME } from "@/config";
+import EntryVaultSection from "@/components/EntryVaultSection";
+import { hasVaultEntryFunds } from "@/components/VaultEntryFundsNotice";
 import MiniPhaseTimer from "@/components/MiniPhaseTimer";
 import { SPECIES, getSpeciesById, getNftContracts } from "@/utils/species";
 import { isEntryOpen } from "@/utils/phases";
@@ -43,16 +45,17 @@ export default function EnterRaceCard() {
   const { value: race, query: raceQuery } = useRaceGlobal();
   const { value: phase } = useCurrentPhase();
   const { address } = useChain(CHAIN_NAME);
+  const { value: user, query: userQuery } = useUser(address);
   const entryOpen = isEntryOpen(phase);
   const { queryTokens, enterRace } = useNftRaceActions();
+  const vaultUatom = Number(user?.deposits ?? 0);
+  const hasVaultFunds = hasVaultEntryFunds(vaultUatom);
   const [speciesId, setSpeciesId] = useState("chicken");
   const [tokens, setTokens] = useState([]);
   const [tokensLoading, setTokensLoading] = useState(false);
   const [selectedToken, setSelectedToken] = useState("");
   const [action, setAction] = useState("saboteur");
   const [salt, setSalt] = useState(() => Math.random().toString(36).slice(2));
-  const [payFromVault, setPayFromVault] = useState(true);
-
   const species = getSpeciesById(speciesId);
   const nftContracts = getNftContracts(species);
 
@@ -76,11 +79,12 @@ export default function EnterRaceCard() {
   }, [speciesId, nftContracts.join(",")]);
 
   const handleEnter = async () => {
+    if (!hasVaultFunds) return;
     const { contract: nftContract, id: tokenId } = parseTokenKey(selectedToken);
     const commitmentB64 = await hashCommitment(action, salt);
     const raceId = race?.current_race_id ?? 0;
     enterRace.mutate(
-      { nftContract, tokenId, commitmentB64, payFromVault },
+      { nftContract, tokenId, commitmentB64 },
       {
         onSuccess: () => {
           if (address && raceId) {
@@ -96,8 +100,13 @@ export default function EnterRaceCard() {
   return (
     <div className="bg-gray-800 p-6 rounded-lg">
       <h2 className="text-xl font-bold text-gray-100 mb-4">{ACTION.ready}</h2>
+      <EntryVaultSection
+        vaultUatom={vaultUatom}
+        loading={userQuery.isLoading}
+        className="mb-4"
+      />
       <p className="text-gray-500 text-sm mb-4">
-        Escrow an allowed NFT + commit your tactic hash. Entry fee ({ENTRY_FEE_ATOM} ATOM) can be paid from your vault.
+        Escrow an allowed NFT and commit your tactic hash once your vault is funded.
       </p>
 
       <div className="mb-4">
@@ -126,9 +135,12 @@ export default function EnterRaceCard() {
       <select
         value={selectedToken}
         onChange={(e) => setSelectedToken(e.target.value)}
-        className="w-full bg-gray-700 text-white p-2 rounded mb-4"
+        disabled={!hasVaultFunds}
+        className="w-full bg-gray-700 text-white p-2 rounded mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <option value="">Select token…</option>
+        <option value="">
+          {hasVaultFunds ? "Select token…" : "Deposit to vault first…"}
+        </option>
         {tokens.map((t) => (
           <option key={tokenKey(t)} value={tokenKey(t)}>
             #{t.id}
@@ -165,17 +177,18 @@ export default function EnterRaceCard() {
         ))}
       </div>
 
-      <label className="flex items-center gap-2 text-gray-400 text-sm mb-4">
-        <input type="checkbox" checked={payFromVault} onChange={(e) => setPayFromVault(e.target.checked)} />
-        Pay {ENTRY_FEE_ATOM} ATOM entry fee from vault (otherwise attach with tx)
-      </label>
-
       <button
         onClick={handleEnter}
-        disabled={!selectedToken || enterRace.isPending || !entryOpen}
+        disabled={!selectedToken || enterRace.isPending || !entryOpen || !hasVaultFunds}
         className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-bold py-3 rounded"
       >
-        {enterRace.isPending ? ACTION.readyPending : entryOpen ? `Escrow NFT & ${ACTION.ready}` : "Entry closed"}
+        {enterRace.isPending
+          ? ACTION.readyPending
+          : !hasVaultFunds
+            ? "Deposit to vault first"
+            : entryOpen
+              ? `Escrow NFT & ${ACTION.ready}`
+              : "Entry closed"}
       </button>
       <p className="text-gray-500 text-xs mt-2">
         Salt is saved in this browser after you enter — no need to copy it for {ACTION.set}.

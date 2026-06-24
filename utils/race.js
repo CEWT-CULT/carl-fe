@@ -91,3 +91,25 @@ export function formatAtom(micro) {
   if (Math.abs(n) < 1) return n.toFixed(6).replace(/\.?0+$/, "");
   return n.toFixed(4).replace(/\.?0+$/, "");
 }
+
+/** CosmWasm Timestamp → local display string. */
+export function formatSettledAt(ts) {
+  if (!ts) return "—";
+  const sec =
+    typeof ts === "object" && ts !== null
+      ? Number(ts.seconds ?? ts.Seconds ?? 0)
+      : Number(ts);
+  if (!sec) return "—";
+  return new Date(sec * 1000).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export function shortAddr(addr) {
+  if (!addr) return "—";
+  return `${addr.slice(0, 10)}…${addr.slice(-4)}`;
+}

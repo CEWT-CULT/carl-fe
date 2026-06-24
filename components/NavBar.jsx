@@ -37,6 +37,12 @@ export default function NavBar() {
           </div>
         </Link>
         <div className="flex items-center gap-2 sm:gap-3">
+          <Link
+            href="/results"
+            className="hidden sm:inline-flex rounded-lg border border-carl-purple/40 px-3 py-2 text-xs font-bold uppercase tracking-wide text-carl-muted hover:text-white hover:border-carl-accent/40 transition-colors"
+          >
+            Results
+          </Link>
           <VaultHeaderWidget />
           <WalletButton />
         </div>

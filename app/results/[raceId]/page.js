@@ -9,10 +9,13 @@ export default function RaceResultsPage() {
   const raceId = Number(params.raceId);
 
   return (
-    <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-6">
-      <header className="mb-4">
-        <Link href="/results" className="text-sm text-gray-500 hover:text-gray-300">
+    <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-6 flex-1">
+      <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <Link href="/results" className="text-sm text-carl-muted hover:text-carl-text font-medium">
           ← All results
+        </Link>
+        <Link href="/" className="text-sm text-carl-accent hover:text-white font-medium">
+          Live race →
         </Link>
       </header>
       <SettlementResults raceId={raceId} />

@@ -87,6 +87,16 @@ export function useRaceHistory(limit = 20) {
   });
 }
 
+/** Newest archived races (contract returns descending race_id). */
+export function useRecentRaceHistory(limit = 10) {
+  const query = useRaceHistory(limit);
+  const races = useMemo(() => {
+    const list = query.data?.pages?.[0]?.races ?? [];
+    return list.slice(0, limit);
+  }, [query.data, limit]);
+  return { races, isLoading: query.isLoading, query };
+}
+
 export function useRaceTelemetry(raceId) {
   const { getCosmWasmClient } = useChain(CHAIN_NAME);
   const query = useQuery({
