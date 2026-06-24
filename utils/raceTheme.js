@@ -9,6 +9,8 @@ export const ACTION = {
   cheer: "GET HYPED",
   cheerTitle: "GET HYPED — Add some extra randomness to the race to earn part of the pool",
   cheerPending: "Getting HYPED…",
+  checkProgress: "Check Race Progress",
+  checkProgressPending: "Checking race progress…",
   go: "GO!",
   finalResults: "Final results",
   revealResults: "REVEAL RACE RESULTS",
@@ -76,7 +78,7 @@ export function getMarqueeCopy({ raceId = 0, phaseKey = "entry", settlementReady
     case "live":
       return {
         headline: `${ACTION.go} RACE #${n} IS LIVE!`,
-        subline: `${ACTION.cheer} THE TRACK · FINALE AT ${ACTION.revealResults}`,
+        subline: `${ACTION.checkProgress} once per minute · finale at ${ACTION.revealResults}`,
       };
     case "settlement":
       return {

@@ -63,7 +63,7 @@ export default function RevealCard() {
     <div className="bg-gray-800 p-6 rounded-lg space-y-4">
       <h2 className="text-xl font-bold text-gray-100">{ACTION.set} · {ACTION.cheer} · {ACTION.revealResults}</h2>
       <p className="text-gray-500 text-sm">
-        Hit {ACTION.set} during the crowd phase. After {ACTION.cheer} closes, anyone can {ACTION.cheer} live track
+        Hit {ACTION.set} during the crowd phase. After {ACTION.cheer} closes, anyone can {ACTION.checkProgress} on the live track
         progress once per minute (cosmetic only). {ACTION.revealResults} locks final results.
       </p>
 
@@ -87,7 +87,7 @@ export default function RevealCard() {
       {raceLive && !race?.is_settled && (
         <p className="text-carl-muted text-sm rounded border border-carl-purple/30 bg-carl-midnight/40 p-3">
           {ACTION.go} — progress {previewStep}/{crankLimit} (max {PREVIEW_PROGRESS_CAP}% until
-          results). {ACTION.cheer} advances the stampede; finale unlocks on {ACTION.revealResults}.
+          results). {ACTION.checkProgress} advances the stampede; finale unlocks on {ACTION.revealResults}.
         </p>
       )}
 
@@ -132,16 +132,16 @@ export default function RevealCard() {
         className="w-full bg-carl-purple hover:bg-carl-navy disabled:bg-gray-600 text-white font-bold py-2 rounded"
       >
         {crankRacePreview.isPending
-          ? ACTION.cheerPending
+          ? ACTION.checkProgressPending
           : !raceLive
             ? `Track live after ${ACTION.cheer} closes`
             : previewStep >= crankLimit
               ? `At ${PREVIEW_PROGRESS_CAP}% — ${ACTION.revealResults} for finale`
               : crankReady
-                ? `${ACTION.cheer} (${previewStep}/${crankLimit})`
+                ? `${ACTION.checkProgress} (${previewStep}/${crankLimit})`
                 : crankWait != null
-                  ? `Next ${ACTION.cheer} in ${formatCountdown(crankWait)}`
-                  : ACTION.cheer}
+                  ? `Next ${ACTION.checkProgress} in ${formatCountdown(crankWait)}`
+                  : ACTION.checkProgress}
       </button>
 
       <button

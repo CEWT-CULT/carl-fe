@@ -550,7 +550,7 @@ export function getPhaseFlavor(key, ctx = {}) {
     },
     live: {
       headline: `${ACTION.go} The stampede is live`,
-      subline: `${ACTION.cheer} once per minute — progress tops out at 85% until results`,
+      subline: `${ACTION.checkProgress} once per minute — progress tops out at 85% until results`,
     },
     settlement: {
       headline: ACTION.revealResults,

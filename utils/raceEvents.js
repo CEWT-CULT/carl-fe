@@ -47,7 +47,7 @@ export function diffRaceEvents(prev, next, config) {
     events.push(
       createEvent(
         "crank",
-        `${ACTION.cheer} — stampede at ${Math.round(pct)}%`,
+        `${ACTION.checkProgress} — stampede at ${Math.round(pct)}%`,
         `Progress tick ${previewStep}`
       )
     );

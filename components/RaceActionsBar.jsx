@@ -340,16 +340,16 @@ export default function RaceActionsBar({
         onClick={() => crankRacePreview.mutate({}, { onSuccess: refetch })}
       >
         {crankRacePreview.isPending
-          ? ACTION.cheerPending
+          ? ACTION.checkProgressPending
           : !raceLive
             ? `Awaiting ${ACTION.go}`
             : previewStep >= crankLimit
               ? `At ${PREVIEW_PROGRESS_CAP}%`
               : crankReady
-                ? `${ACTION.cheer} (${previewStep}/${crankLimit})`
+                ? `${ACTION.checkProgress} (${previewStep}/${crankLimit})`
                 : crankWait != null
                   ? `In ${formatCountdown(crankWait)}`
-                  : ACTION.cheer}
+                  : ACTION.checkProgress}
       </Btn>
     );
   };

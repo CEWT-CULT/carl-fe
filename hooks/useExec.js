@@ -158,9 +158,9 @@ export function useExec() {
     mutationFn: async () => {
       const msg = { crank_race_preview: {} };
       return toastExec(execute(msg, [], CONTRACT, buildStdFee(EXEC_GAS.crankRacePreview)), {
-        loading: `${ACTION.cheerPending}`,
+        loading: ACTION.checkProgressPending,
         success: "Track progress advanced",
-        error: `${ACTION.cheer} failed`,
+        error: `${ACTION.checkProgress} failed`,
       });
     },
     onSuccess: () => {

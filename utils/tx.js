@@ -117,8 +117,8 @@ export function parseContractError(rawLog) {
     const parsed = JSON.parse(first);
     const msg = parsed?.message ?? parsed?.raw_log;
     if (typeof msg === "string") {
-      if (msg.includes("PreviewCrankTooSoon")) return `Wait one minute between ${ACTION.cheer} calls.`;
-      if (msg.includes("RacePreviewClosed")) return `Race hasn't started yet — wait for ${ACTION.cheer} to close.`;
+      if (msg.includes("PreviewCrankTooSoon")) return `Wait one minute between ${ACTION.checkProgress} calls.`;
+      if (msg.includes("RacePreviewClosed")) return `Race hasn't started yet — wait for ${ACTION.go}.`;
       if (msg.includes("PreviewComplete")) return "Race preview is already at 100%.";
       if (msg.includes("out of gas") || first.includes("out of gas")) {
         return "Transaction ran out of gas — retry (fee limit raised).";
