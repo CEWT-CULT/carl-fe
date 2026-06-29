@@ -2,12 +2,13 @@
 
 import { useMemo } from "react";
 import { ChainProvider, InterchainWalletModal } from "@interchain-kit/react";
-import { keplrWallet } from "@interchain-kit/keplr-extension";
+import { keplrWallet } from "@/lib/keplrWallet";
 import { KeplrMobile, keplrMobile } from "@interchain-kit/keplr-mobile";
 import { chain, assetList } from "chain-registry/mainnet/cosmoshub";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
 
+import KeplrAccountSync from "@/components/KeplrAccountSync";
 import { RPC, WALLET_CONNECT_ID, BASE_DENOM, GAS_PRICE, META } from "@/config";
 
 import "@interchain-ui/react/styles";
@@ -76,7 +77,10 @@ export default function Providers({ children }) {
       }}
       walletModal={() => <InterchainWalletModal />}
     >
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <KeplrAccountSync />
+        {children}
+      </QueryClientProvider>
       <Toaster position="top-center" toastOptions={{ className: "font-poppins" }} />
     </ChainProvider>
   );

@@ -12,6 +12,30 @@ export default function HelpPage() {
         </p>
         <p className="text-gray-500 text-sm">by Fyveonit</p>
       </div>
+
+      <div className="bg-gray-800 rounded-lg p-6 shadow-lg mb-6">
+        <h2 className="text-xl font-semibold text-gray-100 mb-2">Keplr shows &quot;Not Installed&quot;</h2>
+        <p className="text-gray-400 mb-3">
+          The site only sees the <strong className="text-gray-200">Keplr browser extension</strong> in the
+          same browser tab. Having the Keplr mobile app or desktop app open does not count — you need the
+          extension in Chrome, Firefox, or Brave.
+        </p>
+        <ul className="list-disc list-inside text-gray-400 space-y-2 text-sm">
+          <li>Open C.A.R.L in Chrome or Firefox (not an in-app browser, Discord, or IDE preview).</li>
+          <li>Confirm the Keplr extension is enabled for this site, then hard-refresh the page (Ctrl+Shift+R).</li>
+          <li>Unlock Keplr in the extension popup, then click Connect Wallet again.</li>
+          <li>On mobile, choose <strong className="text-gray-200">Keplr Mobile</strong> in the wallet list to connect via WalletConnect.</li>
+        </ul>
+      </div>
+
+      <div className="bg-gray-800 rounded-lg p-6 shadow-lg mb-6">
+        <h2 className="text-xl font-semibold text-gray-100 mb-2">Switched Keplr accounts</h2>
+        <p className="text-gray-400 mb-3 text-sm">
+          After changing accounts in the Keplr extension, the site should update automatically within a
+          second. If vault or race data looks wrong, hard-refresh once. Make sure the new account has
+          Cosmos Hub enabled in Keplr.
+        </p>
+      </div>
     </div>
   );
 }

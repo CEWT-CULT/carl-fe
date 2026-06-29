@@ -2,7 +2,7 @@
 
 import { useChain as useInterchainChain } from "@interchain-kit/react";
 import { createCosmosQueryClient } from "@interchainjs/cosmos";
-import { getSigner, COSMOS_AMINO } from "interchainjs";
+import { getSigner, COSMOS_AMINO, COSMOS_DIRECT } from "interchainjs";
 import { toUtf8, fromUtf8 } from "@interchainjs/encoding";
 import { getBalance as queryBalance } from "interchainjs/cosmos/bank/v1beta1/query.rpc.func";
 import { getSmartContractState } from "interchainjs/cosmwasm/wasm/v1/query.rpc.func";
@@ -52,19 +52,20 @@ export function useChain(chainName) {
   const getSigningCosmWasmClient = async () => {
     if (wallet) {
       const offlineSigner = await wallet.getOfflineSigner();
-      if (isAminoOnlySigner(offlineSigner)) {
-        const queryClient = await getQueryClient();
-        return getSigner(offlineSigner, {
-          preferredSignType: COSMOS_AMINO,
-          signerOptions: {
-            queryClient,
-            addressPrefix: chainInfo.bech32Prefix,
-            chainId: chainInfo.chainId,
-            gasPrice: `${GAS_PRICE}${BASE_DENOM}`,
-            multiplier: 1.5,
-          },
-        });
-      }
+      const queryClient = await getQueryClient();
+      const preferredSignType = isAminoOnlySigner(offlineSigner)
+        ? COSMOS_AMINO
+        : COSMOS_DIRECT;
+      return getSigner(offlineSigner, {
+        preferredSignType,
+        signerOptions: {
+          queryClient,
+          addressPrefix: chainInfo.bech32Prefix,
+          chainId: chainInfo.chainId,
+          gasPrice: `${GAS_PRICE}${BASE_DENOM}`,
+          multiplier: 1.5,
+        },
+      });
     }
     return getSigningClient();
   };
